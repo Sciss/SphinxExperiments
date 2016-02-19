@@ -10,15 +10,32 @@ import scala.annotation.tailrec
 import scala.collection.JavaConverters
 
 // -DlogLevel=WARNING
-object Test1 extends App {
+object Test2 extends App {
   val cfg = new Configuration
 
-  cfg.setAcousticModelPath("resource:/edu/cmu/sphinx/models/en-us/en-us")
-  cfg.setDictionaryPath   ("resource:/edu/cmu/sphinx/models/en-us/cmudict-en-us.dict")
-  cfg.setLanguageModelPath("resource:/edu/cmu/sphinx/models/en-us/en-us.lm.bin")
+  val voxDir    = userHome / "Downloads" / "voxforge-de-r20141117"
+  val amDir     = voxDir / "model_parameters" / "voxforge.cd_cont_3000"
+  val dictFile  = voxDir / "etc" / "voxforge.dic"
+  val lmFile    = voxDir / "etc" / "voxforge.lm.DMP"
+  val lmFileL   = lmFile.replaceExt("dmp")  // stupid sphinx has case-sensitive check
+
+  require(amDir   .isDirectory)
+  require(dictFile.isFile     )
+  require(lmFile  .isFile     )
+
+  if (!lmFileL.exists()) {
+    import sys.process._
+    //
+    val res = Seq("ln", "-sr", lmFile.path, lmFileL.path).!
+    require(res == 0, res.toString)
+  }
+
+  cfg.setAcousticModelPath(amDir   .path)
+  cfg.setDictionaryPath   (dictFile.path)
+  cfg.setLanguageModelPath(lmFileL .path)
 
   val rec   = new StreamSpeechRecognizer(cfg)
-  val fIn   = userHome / "Downloads" / "Big_Ego_12-burroughsRsmp.wav"
+  val fIn   = userHome / "Downloads" / "unvorhergesehen-mRsmp.wav" // "unvorhergesehen-mRsmpCut.wav"
   val is    = new FileInputStream(fIn)
 
   rec.startRecognition(is)
