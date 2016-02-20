@@ -1,3 +1,16 @@
+/*
+ *  Test1.scala
+ *  (SphinxExperiments)
+ *
+ *  Copyright (c) 2016 Hanns Holger Rutz. All rights reserved.
+ *
+ *  This software is published under the GNU General Public License v3+
+ *
+ *
+ *  For further information, please contact Hanns Holger Rutz at
+ *  contact@sciss.de
+ */
+
 package de.sciss.sphinxex
 
 import java.io.FileInputStream

@@ -1,0 +1,4 @@
+- directory: `Rondo130428_2/Verbal/`
+- real:            `B10h28m25s29sep2012.aif`
+- unvorhergesehen: `B18h16m54s16sep2012.wav`
+- farblos:         `B07h06m18s19oct2012.aif`
