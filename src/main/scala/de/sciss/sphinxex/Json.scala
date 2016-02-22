@@ -28,9 +28,9 @@ object Json {
     def writes(u: acoustic.Unit): JsValue = {
       // XXX TODO : require(u.getContext == null, "context not supported")
       JsObject(Seq(
-        "name"    -> JsString (u.getName),
-        "filler"  -> JsBoolean(u.isFiller),
-        "id"      -> JsNumber (u.getBaseID)
+        "name"  -> JsString (u.getName),
+        "fill"  -> JsBoolean(u.isFiller),
+        "id"    -> JsNumber (u.getBaseID)
       ))
     }
   }
@@ -40,8 +40,8 @@ object Json {
 
     def writes(w: Word): JsValue =
       JsObject(Seq(
-        "spelling"        -> JsString(w.getSpelling),
-        "pronunciations"  -> JsArray (w.getPronunciations.map(PronunciationFormat.writes))
+        "spell" -> JsString(w.getSpelling),
+        "pron"  -> JsArray (w.getPronunciations.map(PronunciationFormat.writes))
       ))
   }
 
@@ -53,7 +53,7 @@ object Json {
     def writes(p: Pronunciation): JsValue =
       JsObject(Seq(
         "units" -> JsArray (p.getUnits.map(UnitFormat.writes)),
-        "tag"   -> JsString(p.getTag),
+        // "tag"   -> JsString(p.getTag),
         "prob"  -> JsNumber(p.getProbability.toDouble)
         // "word" -> p.getWord
       ))
@@ -76,10 +76,10 @@ object Json {
 
     def writes(e: Edge): JsValue =
       JsObject(Seq(
-        "from"        -> JsString(e.getFromNode.getId),
-        "to"          -> JsString(e.getToNode  .getId),
-        "acoustical"  -> JsNumber(e.getAcousticScore),
-        "language"    -> JsNumber(e.getLMScore)
+        "from"  -> JsString(e.getFromNode.getId),
+        "to"    -> JsString(e.getToNode  .getId),
+        "as"    -> JsNumber(e.getAcousticScore),
+        "lms"   -> JsNumber(e.getLMScore)
       ))
   }
 
@@ -95,10 +95,10 @@ object Json {
       val edges       = l.getEdges.asScala.map(EdgeFormat.writes)(breakOut): Seq[JsValue]
 
       JsObject(Seq(
-        "nodes"     -> JsArray(nodes),
-        "edges"     -> JsArray(edges),
-        "initial"   -> JsString(initialId),
-        "terminal"  -> JsString(terminalId)
+        "nodes" -> JsArray(nodes),
+        "edges" -> JsArray(edges),
+        "init"  -> JsString(initialId),
+        "term"  -> JsString(terminalId)
       ))
     }
   }

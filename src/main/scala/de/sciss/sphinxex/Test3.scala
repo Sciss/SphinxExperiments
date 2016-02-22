@@ -22,7 +22,7 @@ object Test3 extends App {
   // val audioFile = userHome / "Downloads" / "URF-unvorhergesehen-16k.wav"
   val jsonFile  = file("json_out") / audioFile.replaceExt("json").name
   require(!jsonFile.exists() || jsonFile.length == 0L)
-  val config    = ParseToJson.Config(audioInput = audioFile, jsonOutput = jsonFile)
+  val config    = ParseToJson.Config(audioInput = audioFile, jsonOutput = jsonFile, verbose = false)
   val proc      = ParseToJson(config)
   proc.start()
 

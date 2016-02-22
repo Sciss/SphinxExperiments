@@ -68,18 +68,18 @@ object ParseToJson extends ProcessorFactory {
             val l           = speechRes.getLattice
             val jsonLattice = Json.LatticeFormat.writes(l)
             // val endFrame    = l.getTerminalNode.getEndTime
-            val endFrame    = l.getViterbiPath.asScala.lastOption.map(_.getEndTime).getOrElse(0L)
+            val words       = speechRes.getWords.asScala
+            val endFrame    = words.lastOption.map(_.getTimeFrame.getEnd).getOrElse(0L)
             // val endFrame    = speechRes.getResult.getEndFrame
             val end         = endFrame * BlockSize / sampleRate
             progress        = end / duration
             if (verbose) {
-              val info = speechRes.getWords.asScala.mkString(s"${timeFmt.format(end)}: ", ", ", "")
+              val info = words.mkString(s"${timeFmt.format(end)}: ", ", ", "")
               println(info)
             }
             checkAborted()
             loop(res :+ jsonLattice)
           case None =>
-            rec.stopRecognition()
             res
         }
 
@@ -90,7 +90,8 @@ object ParseToJson extends ProcessorFactory {
             "audio"     -> FileFormat.writes(audioInput),
             "lattices"  -> JsArray(lattices)
           ))
-          val json  = o.toString()
+          val json  = play.api.libs.json.Json.prettyPrint(o)
+          // val json  = o.toString()
           fos.write(json.getBytes("UTF-8"))
 
         } finally {
