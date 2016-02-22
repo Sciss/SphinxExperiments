@@ -23,6 +23,7 @@ import de.sciss.processor.Processor
 import de.sciss.synth.io.AudioFile
 import edu.cmu.sphinx
 import edu.cmu.sphinx.api.StreamSpeechRecognizer
+import edu.cmu.sphinx.decoder.search
 
 import scala.annotation.tailrec
 import scala.collection.JavaConverters
@@ -44,8 +45,12 @@ object Test2 extends App {
   val imageFile = file("image_out") / "test.pdf"
 
   if (imageFile.exists()) {
-    println(s"Image file '$imageFile' already exists. Not overwriting.")
-    sys.exit()
+    if (imageFile.length() > 0L) {
+      println(s"Image file '$imageFile' already exists. Not overwriting.")
+      sys.exit()
+    } else {
+      imageFile.delete()
+    }
   }
 
   val imgWidth    = 1080
@@ -123,17 +128,55 @@ object Test2 extends App {
 
   def process(self: Processor.Body, g: Graphics2D): Unit = {
     g.setColor(Color.black)
-    val font = condensedFont.deriveFont(16) // new Font(Font.SANS_SERIF, Font.PLAIN, 16)
+    val font = condensedFont.deriveFont(16f) // bloody f*cking FLOAT not INT, thanks Java for a great API
     g.setFont(font)
     val fm   = g.getFontMetrics
 
+    var allTokens = Set.empty[search.Token]
+
     @tailrec def loop(): Unit = Option(rec.getResult) match {
       case Some(speechRes) =>
+        import JavaConverters._
         val res   = speechRes.getResult
+
+        // typically 3 to 60
+        // println(s"NUM NODES = ${speechRes.getLattice.getNodes.size()}")
+
+        // edu.cmu.sphinx.frontend.FloatData
+        // Option(res.getDataFrames).foreach(f => f.asScala.headOption.foreach(d => println(s"DATA: ${d.getClass.getName} - $d")))
+
         // val hypo  = res.getBestResultNoFiller
         // res.getCollectTime
         // res.getStartFrame
-        import JavaConverters._
+
+        val tokens  = (res.getActiveTokens.asScala.toList ++ res.getResultTokens.asScala.toList).toSet
+        val states  = tokens.map(_.getSearchState)
+        // val nullSet = tokens.map(_.getPredecessor != null)
+        // println(nullSet.mkString("Null set: ", ", ", ""))
+        // val hasOutside = tokens.exists(t => !tokens.contains(t.getPredecessor))
+        // println(s"hasOutside = $hasOutside")
+        // val acousSet = tokens.map(_.getAcousticScore)
+        // println(acousSet.mkString("Acous set: ", ", ", ""))
+
+        val prevTokens  = allTokens
+        allTokens       = tokens
+        @tailrec
+        def loopTokens(t: search.Token): Unit =
+          Option(t.getPredecessor) match {
+            case Some(pred) =>
+              if (allTokens.contains(pred)) {
+                allTokens += pred
+                loopTokens(pred)
+              }
+            case None =>
+          }
+
+        tokens.foreach(loopTokens)
+        val oldTokens = prevTokens intersect allTokens
+        println(s"Num tokens = ${allTokens.size}; Old tokens = ${oldTokens.size}")
+        val stateNames = allTokens.map(_.getSearchState.getClass.getSimpleName)
+        println(stateNames.mkString("States: ", ", ", ""))
+
         val list  = res.getTimedBestResult(true).asScala
         list.foreach { wordRes =>
           val word    = wordRes.getWord

@@ -13,5 +13,6 @@ libraryDependencies ++= Seq(
   "de.sciss" %% "audiowidgets-core" % "1.9.1",
   "de.sciss" %% "scalaaudiofile"    % "1.4.5",
   "de.sciss" %% "processor"         % "0.4.0",
-  "de.sciss" %% "pdflitz"           % "1.2.1"
+  "de.sciss" %% "pdflitz"           % "1.2.1",
+  "de.sciss" %% "play-json-sealed"  % "0.4.0"
 )
