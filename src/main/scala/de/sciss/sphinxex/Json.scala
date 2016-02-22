@@ -29,7 +29,7 @@ object Json {
       // XXX TODO : require(u.getContext == null, "context not supported")
       JsObject(Seq(
         "name"  -> JsString (u.getName),
-        "fill"  -> JsBoolean(u.isFiller),
+        // "fill"  -> JsBoolean(u.isFiller),  -- only "SIL" is true
         "id"    -> JsNumber (u.getBaseID)
       ))
     }
@@ -50,13 +50,15 @@ object Json {
   implicit object PronunciationFormat extends Format[Pronunciation] {
     def reads(json: JsValue): JsResult[Pronunciation] = ???
 
-    def writes(p: Pronunciation): JsValue =
-      JsObject(Seq(
-        "units" -> JsArray (p.getUnits.map(UnitFormat.writes)),
-        // "tag"   -> JsString(p.getTag),
-        "prob"  -> JsNumber(p.getProbability.toDouble)
-        // "word" -> p.getWord
-      ))
+    def writes(p: Pronunciation): JsValue = {
+      JsArray(p.getUnits.map(u => JsString(u.getName)))
+//      JsObject(Seq(
+//        "units" -> JsArray(p.getUnits.map(UnitFormat.writes))
+//        // "tag"   -> JsString(p.getTag), -- always null
+//        // "prob"  -> JsNumber(p.getProbability.toDouble) -- always 1.0
+//        // "word" -> p.getWord
+//      ))
+    }
   }
 
   implicit object NodeFormat extends Format[result.Node] {
