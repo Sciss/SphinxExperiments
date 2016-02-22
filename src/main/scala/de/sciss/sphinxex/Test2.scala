@@ -1,5 +1,5 @@
 /*
- *  Test2.scala
+ *  German.scala
  *  (SphinxExperiments)
  *
  *  Copyright (c) 2016 Hanns Holger Rutz. All rights reserved.

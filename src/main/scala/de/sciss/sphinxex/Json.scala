@@ -1,5 +1,5 @@
 /*
- *  JSON.scala
+ *  Json.scala
  *  (SphinxExperiments)
  *
  *  Copyright (c) 2016 Hanns Holger Rutz. All rights reserved.
@@ -21,12 +21,12 @@ import play.api.libs.json.{Format, JsArray, JsBoolean, JsNumber, JsObject, JsRes
 
 import scala.collection.{JavaConverters, breakOut}
 
-object JSON {
+object Json {
   implicit object UnitFormat extends Format[acoustic.Unit] {
     def reads(json: JsValue): JsResult[acoustic.Unit] = ???
 
     def writes(u: acoustic.Unit): JsValue = {
-      require(u.getContext == null, "context not supported")
+      // XXX TODO : require(u.getContext == null, "context not supported")
       JsObject(Seq(
         "name"    -> JsString (u.getName),
         "filler"  -> JsBoolean(u.isFiller),
@@ -91,9 +91,8 @@ object JSON {
 
       val initialId   = l.getInitialNode  .getId
       val terminalId  = l.getTerminalNode .getId
-
-      val nodes = l.getNodes.asScala.map(NodeFormat.writes)(breakOut): Seq[JsValue]
-      val edges = l.getEdges.asScala.map(EdgeFormat.writes)(breakOut): Seq[JsValue]
+      val nodes       = l.getNodes.asScala.map(NodeFormat.writes)(breakOut): Seq[JsValue]
+      val edges       = l.getEdges.asScala.map(EdgeFormat.writes)(breakOut): Seq[JsValue]
 
       JsObject(Seq(
         "nodes"     -> JsArray(nodes),
