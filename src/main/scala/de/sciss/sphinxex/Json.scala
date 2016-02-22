@@ -38,11 +38,15 @@ object Json {
   implicit object WordFormat extends Format[Word] {
     def reads(json: JsValue): JsResult[Word] = ???
 
-    def writes(w: Word): JsValue =
-      JsObject(Seq(
-        "spell" -> JsString(w.getSpelling),
-        "pron"  -> JsArray (w.getPronunciations.map(PronunciationFormat.writes))
-      ))
+    def writes(w: Word): JsValue = {
+      // We should be able to reconstruct pronunciations from dict.
+      // It's not that this instance denotes a particular pronunciation.
+      JsString(w.getSpelling)
+//      JsObject(Seq(
+//        "spell" -> JsString(w.getSpelling),
+//        "pron"  -> JsArray(w.getPronunciations.map(PronunciationFormat.writes))
+//      ))
+    }
   }
 
   // private[this] val WordOptionFormat = Formats.OptionFormat[Word]
