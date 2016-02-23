@@ -1,0 +1,33 @@
+/*
+ *  Test4.scala
+ *  (SphinxExperiments)
+ *
+ *  Copyright (c) 2016 Hanns Holger Rutz. All rights reserved.
+ *
+ *  This software is published under the GNU General Public License v3+
+ *
+ *
+ *  For further information, please contact Hanns Holger Rutz at
+ *  contact@sciss.de
+ */
+
+package de.sciss.sphinxex
+
+import de.sciss.file._
+import de.sciss.processor.Processor
+
+import scala.concurrent.{Future, blocking}
+
+object Test4 extends App {
+  val audioFile = userHome / "Downloads" / "unvorhergesehen-mRsmpCut.wav"
+  val jsonFile  = file("json_out") / audioFile.replaceExt("json").name
+
+  val proc = Processor.fromFuture("Read", Future(blocking(ParseToJson.read(jsonFile))))
+
+  proc.monitor(printResult = false)
+  proc.onSuccess {
+    case ParseToJson.Read(_, lattices) => println(s"Recovered ${lattices.size} lattices.")
+  }
+
+  exitWithProcessor(proc)
+}

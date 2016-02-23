@@ -18,15 +18,16 @@ import java.io.{FileOutputStream, FileInputStream}
 import de.sciss.audiowidgets.AxisFormat
 import de.sciss.file._
 import de.sciss.play.json.Formats.FileFormat
+import play.api.libs.json.{Json => PlayJson, JsString, JsArray, JsObject, JsValue}
 import de.sciss.processor.impl.ProcessorImpl
 import de.sciss.processor.{ProcessorFactory, ProcessorLike}
 import de.sciss.synth.io.AudioFile
 import edu.cmu.sphinx
 import edu.cmu.sphinx.api.StreamSpeechRecognizer
-import play.api.libs.json.{JsArray, JsObject, JsValue}
+import edu.cmu.sphinx.result
 
 import scala.annotation.tailrec
-import scala.collection.JavaConverters
+import scala.collection.{breakOut, JavaConverters}
 import scala.collection.immutable.{IndexedSeq => Vec}
 import scala.concurrent.blocking
 
@@ -40,6 +41,26 @@ object ParseToJson extends ProcessorFactory {
   
   @inline
   private[this] val BlockSize = 16
+
+  case class Read(audioInput: File, lattices: Vec[result.Lattice])
+
+  def read(jsonInput: File): Read = {
+    val fis = new FileInputStream(jsonInput)
+    try {
+      val len = fis.available()
+      val arr = new Array[Byte](len)
+      fis.read(arr)
+      val json = PlayJson.parse(arr)
+      json match {
+        case JsObject(Seq(("audio", JsString(path)), ("lattices", JsArray(latticesJ)))) =>
+          val lattices = latticesJ.map(Json.LatticeFormat.reads(_).get)(breakOut): Vec[result.Lattice]
+          Read(file(path), lattices)
+        case _ => throw new Exception("Json cannot be parsed")
+      }
+    } finally {
+      fis.close()
+    }
+  }
 
   private final class Impl(val config: Config) extends ProcessorImpl[Product, Repr] with Repr {
     protected def body(): Unit = blocking {
@@ -90,7 +111,7 @@ object ParseToJson extends ProcessorFactory {
             "audio"     -> FileFormat.writes(audioInput),
             "lattices"  -> JsArray(lattices)
           ))
-          val json  = play.api.libs.json.Json.prettyPrint(o)
+          val json  = PlayJson.prettyPrint(o)
           // val json  = o.toString()
           fos.write(json.getBytes("UTF-8"))
 

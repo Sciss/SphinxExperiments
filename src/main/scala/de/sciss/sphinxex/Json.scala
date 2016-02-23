@@ -13,30 +13,37 @@
 
 package de.sciss.sphinxex
 
-import edu.cmu.sphinx.linguist.acoustic
-import edu.cmu.sphinx.linguist.dictionary.{Pronunciation, Word}
+import de.sciss.play.json.Formats
+import edu.cmu.sphinx.linguist.dictionary.{Dictionary, Word}
 import edu.cmu.sphinx.result
-import edu.cmu.sphinx.result.Edge
-import play.api.libs.json.{Format, JsArray, JsBoolean, JsNumber, JsObject, JsResult, JsString, JsValue}
+import play.api.libs.json.{Format, JsArray, JsError, JsNumber, JsObject, JsResult, JsString, JsSuccess, JsValue}
 
 import scala.collection.{JavaConverters, breakOut}
+import scala.language.implicitConversions
 
 object Json {
-  implicit object UnitFormat extends Format[acoustic.Unit] {
-    def reads(json: JsValue): JsResult[acoustic.Unit] = ???
-
-    def writes(u: acoustic.Unit): JsValue = {
-      // XXX TODO : require(u.getContext == null, "context not supported")
-      JsObject(Seq(
-        "name"  -> JsString (u.getName),
-        // "fill"  -> JsBoolean(u.isFiller),  -- only "SIL" is true
-        "id"    -> JsNumber (u.getBaseID)
-      ))
-    }
-  }
+  //  implicit object UnitFormat extends Format[acoustic.Unit] {
+  //    def reads(json: JsValue): JsResult[acoustic.Unit] = ...
+  //
+  //    def writes(u: acoustic.Unit): JsValue = {
+  //      // XXX TODO : require(u.getContext == null, "context not supported")
+  //      JsObject(Seq(
+  //        "name"  -> JsString (u.getName),
+  //        // "fill"  -> JsBoolean(u.isFiller),  -- only "SIL" is true
+  //        "id"    -> JsNumber (u.getBaseID)
+  //      ))
+  //    }
+  //  }
 
   implicit object WordFormat extends Format[Word] {
-    def reads(json: JsValue): JsResult[Word] = ???
+    def reads(json: JsValue): JsResult[Word] = json match {
+      case JsString(spell) =>
+        val isFiller = spell == Dictionary.SILENCE_SPELLING // || spell == "<s>" || spell == "</s>"
+        val w = new Word(spell, new Array(0), isFiller)
+        JsSuccess(w)
+
+      case _ => JsError("Unexpected Json value")
+    }
 
     def writes(w: Word): JsValue = {
       // We should be able to reconstruct pronunciations from dict.
@@ -51,54 +58,122 @@ object Json {
 
   // private[this] val WordOptionFormat = Formats.OptionFormat[Word]
 
-  implicit object PronunciationFormat extends Format[Pronunciation] {
-    def reads(json: JsValue): JsResult[Pronunciation] = ???
+  //  implicit object PronunciationFormat extends Format[Pronunciation] {
+  //    def reads(json: JsValue): JsResult[Pronunciation] = ...
+  //
+  //    def writes(p: Pronunciation): JsValue = {
+  //      JsArray(p.getUnits.map(u => JsString(u.getName)))
+  ////      JsObject(Seq(
+  ////        "units" -> JsArray(p.getUnits.map(UnitFormat.writes))
+  ////        // "tag"   -> JsString(p.getTag), -- always null
+  ////        // "prob"  -> JsNumber(p.getProbability.toDouble) -- always 1.0
+  ////        // "word" -> p.getWord
+  ////      ))
+  //    }
+  //  }
 
-    def writes(p: Pronunciation): JsValue = {
-      JsArray(p.getUnits.map(u => JsString(u.getName)))
-//      JsObject(Seq(
-//        "units" -> JsArray(p.getUnits.map(UnitFormat.writes))
-//        // "tag"   -> JsString(p.getTag), -- always null
-//        // "prob"  -> JsNumber(p.getProbability.toDouble) -- always 1.0
-//        // "word" -> p.getWord
-//      ))
+  object NodeDef {
+    implicit def fromNode(n: result.Node): NodeDef =
+      NodeDef(n.getId, n.getWord, n.getBeginTime, n.getEndTime)
+  }
+  case class NodeDef(id: String, word: Word, beginTime: Long, endTime: Long)
+
+  implicit object NodeFormat extends Format[NodeDef] {
+    def writes(n: NodeDef): JsValue =
+      JsObject(Seq(
+        "id"    -> JsString(n.id),
+        "word"  -> WordFormat.writes(n.word),
+        "begin" -> JsNumber(n.beginTime),
+        "end"   -> JsNumber(n.endTime)
+      ))
+
+    def reads(json: JsValue): JsResult[NodeDef] = json match {
+      case JsObject(Seq(
+      ("id"   , JsString(id)),
+      ("word" , wordJ),
+      ("begin", JsNumber(beginTime)),
+      ("end"  , JsNumber(endTime))
+      )) =>
+
+        for {
+          word <- WordFormat.reads(wordJ)
+        } yield {
+          NodeDef(id, word, beginTime.toLong, endTime.toLong)
+        }
+
+      case _ => JsError("Unexpected Json value")
     }
   }
-
-  implicit object NodeFormat extends Format[result.Node] {
-    def reads(json: JsValue): JsResult[result.Node] = ???
-
-    def writes(n: result.Node): JsValue =
-      JsObject(Seq(
-        "id"    -> JsString(n.getId),
-        "word"  -> WordFormat.writes(n.getWord),
-        "begin" -> JsNumber(n.getBeginTime),
-        "end"   -> JsNumber(n.getEndTime)
-      ))
+  
+  object EdgeDef {
+    implicit def fromEdge(e: result.Edge): EdgeDef =
+      EdgeDef(e.getFromNode.getId, e.getToNode.getId, e.getAcousticScore, e.getLMScore)
   }
+  case class EdgeDef(from: String, to: String, as: Double, lms: Double)
 
-  implicit object EdgeFormat extends Format[result.Edge] {
-    def reads(json: JsValue): JsResult[Edge] = ???
+  implicit object EdgeFormat extends Format[EdgeDef] {
+    def reads(json: JsValue): JsResult[EdgeDef] = json match {
+      case JsObject(Seq(
+          ("from" , JsString(from)),
+          ("to"   , JsString(to  )),
+          ("as"   , JsNumber(as  )),
+          ("lms"  , JsNumber(lms ))
+        )) =>
 
-    def writes(e: Edge): JsValue =
+        val d = EdgeDef(from, to, as.toDouble, lms.toDouble)
+        JsSuccess(d)
+
+      case _ => JsError("Unexpected Json value")
+    }
+
+    def writes(e: EdgeDef): JsValue =
       JsObject(Seq(
-        "from"  -> JsString(e.getFromNode.getId),
-        "to"    -> JsString(e.getToNode  .getId),
-        "as"    -> JsNumber(e.getAcousticScore),
-        "lms"   -> JsNumber(e.getLMScore)
+        "from"  -> JsString(e.from),
+        "to"    -> JsString(e.to  ),
+        "as"    -> JsNumber(e.as  ),
+        "lms"   -> JsNumber(e.lms )
       ))
   }
 
   implicit object LatticeFormat extends Format[result.Lattice] {
-    def reads(json: JsValue): JsResult[result.Lattice] = ???
+    def reads(json: JsValue): JsResult[result.Lattice] = json match {
+      case JsObject(Seq(
+          ("nodes", nodesJ),
+          ("edges", edgesJ),
+          ("init" , JsString(initialId)),
+          ("term" , JsString(terminalId))
+        )) =>
+
+        for {
+          nodeDefs  <- Formats.VecFormat[NodeDef].reads(nodesJ)
+          edgesDefs <- Formats.VecFormat[EdgeDef].reads(edgesJ)
+        } yield {
+          val l = new MyLattice // result.Lattice()
+          val nodes = nodeDefs.map { d =>
+            d.id -> l.addNode(d.id, d.word, d.beginTime, d.endTime)
+          } (breakOut): Map[String, result.Node]
+          edgesDefs.foreach { d =>
+            val from = nodes(d.from)
+            val to   = nodes(d.to  )
+            l.addEdge(from, to, d.as, d.lms)
+          }
+          val initNode = nodes(initialId )
+          val termNode = nodes(terminalId)
+          l.setInitialNode (initNode)
+          l.setTerminalNode(termNode)
+          l
+        }
+
+      case _ => JsError("Unexpected Json value")
+    }
 
     def writes(l: result.Lattice): JsValue = {
       import JavaConverters._
 
       val initialId   = l.getInitialNode  .getId
       val terminalId  = l.getTerminalNode .getId
-      val nodes       = l.getNodes.asScala.map(NodeFormat.writes)(breakOut): Seq[JsValue]
-      val edges       = l.getEdges.asScala.map(EdgeFormat.writes)(breakOut): Seq[JsValue]
+      val nodes       = l.getNodes.asScala.map(n => NodeFormat.writes(n))(breakOut): Seq[JsValue]
+      val edges       = l.getEdges.asScala.map(e => EdgeFormat.writes(e))(breakOut): Seq[JsValue]
 
       JsObject(Seq(
         "nodes" -> JsArray(nodes),
