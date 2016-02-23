@@ -74,9 +74,15 @@ object Json {
 
   object NodeDef {
     implicit def fromNode(n: result.Node): NodeDef =
-      NodeDef(n.getId, n.getWord, n.getBeginTime, n.getEndTime)
+      NodeDef(n.getId, n.getWord, n.getBeginTime, n.getEndTime,
+        n.getForwardScore, n.getBackwardScore, n.getPosterior,
+        Option(n.getBestPredecessor).map(_.getId), n.getViterbiScore)
   }
-  case class NodeDef(id: String, word: Word, beginTime: Long, endTime: Long)
+  case class NodeDef(id: String, word: Word, beginTime: Long, endTime: Long,
+                     forward: Double, backward: Double, posterior: Double,
+                     bestPred: Option[String], viterbi: Double)
+
+  private[this] val StringOption = Formats.OptionFormat[String]
 
   implicit object NodeFormat extends Format[NodeDef] {
     def writes(n: NodeDef): JsValue =
@@ -84,21 +90,34 @@ object Json {
         "id"    -> JsString(n.id),
         "word"  -> WordFormat.writes(n.word),
         "begin" -> JsNumber(n.beginTime),
-        "end"   -> JsNumber(n.endTime)
+        "end"   -> JsNumber(n.endTime),
+        "fwd"   -> JsNumber(n.forward),
+        "bwd"   -> JsNumber(n.backward),
+        "post"  -> JsNumber(n.posterior),
+        "pred"  -> StringOption.writes(n.bestPred),
+        "vit"   -> JsNumber(n.viterbi)
       ))
 
     def reads(json: JsValue): JsResult[NodeDef] = json match {
       case JsObject(Seq(
-      ("id"   , JsString(id)),
-      ("word" , wordJ),
-      ("begin", JsNumber(beginTime)),
-      ("end"  , JsNumber(endTime))
+        ("id"   , JsString(id)),
+        ("word" , wordJ),
+        ("begin", JsNumber(beginTime)),
+        ("end"  , JsNumber(endTime)),
+        ("fwd"  , JsNumber(forward)),
+        ("bwd"  , JsNumber(backward)),
+        ("post" , JsNumber(posterior)),
+        ("pred" , bestPredJ),
+        ("vit"  , JsNumber(viterbi))
       )) =>
 
         for {
-          word <- WordFormat.reads(wordJ)
+          word     <- WordFormat.reads(wordJ)
+          bestPred <- StringOption.reads(bestPredJ)
         } yield {
-          NodeDef(id, word, beginTime.toLong, endTime.toLong)
+          NodeDef(id, word, beginTime = beginTime.toLong, endTime = endTime.toLong,
+            forward = forward.toDouble, backward = backward.toDouble, posterior = posterior.toDouble,
+            bestPred = bestPred, viterbi = viterbi.toDouble)
         }
 
       case _ => JsError("Unexpected Json value")
@@ -148,15 +167,32 @@ object Json {
           nodeDefs  <- Formats.VecFormat[NodeDef].reads(nodesJ)
           edgesDefs <- Formats.VecFormat[EdgeDef].reads(edgesJ)
         } yield {
+
           val l = new MyLattice // result.Lattice()
-          val nodes = nodeDefs.map { d =>
-            d.id -> l.addNode(d.id, d.word, d.beginTime, d.endTime)
-          } (breakOut): Map[String, result.Node]
+
+          val nodes0: Map[String, (result.Node, Option[String])] = nodeDefs.map { d =>
+            val n = l.addNode(d.id, d.word, d.beginTime, d.endTime)
+            n.setForwardScore (d.forward)
+            n.setBackwardScore(d.backward)
+            n.setPosterior    (d.posterior)
+            n.setViterbiScore (d.viterbi)
+            d.id -> ((n, d.bestPred))
+          } (breakOut)
+
+          val nodes: Map[String, result.Node] = nodes0.map { case (id, (n, predId)) =>
+            predId.foreach { id =>
+              val pred = nodes0(id)._1
+              n.setBestPredecessor(pred)
+            }
+            id -> n
+          }
+
           edgesDefs.foreach { d =>
             val from = nodes(d.from)
             val to   = nodes(d.to  )
             l.addEdge(from, to, d.as, d.lms)
           }
+
           val initNode = nodes(initialId )
           val termNode = nodes(terminalId)
           l.setInitialNode (initNode)

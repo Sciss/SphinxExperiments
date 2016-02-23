@@ -15,6 +15,7 @@ package de.sciss.sphinxex
 
 import de.sciss.file._
 import de.sciss.processor.Processor
+import edu.cmu.sphinx.result.Nbest
 
 import scala.collection.JavaConverters
 import scala.concurrent.{Future, blocking}
@@ -32,9 +33,17 @@ object Test4 extends App {
       lattices.foreach { l =>
         import JavaConverters._
         val xs = l.getWordResultPath.asScala.map(_.getWord.getSpelling).mkString(" ")
+        println("____")
         println(xs)
+        new Nbest(l).getNbest(4).asScala.foreach(println)
       }
+      sys.exit()
+  }
+  proc.onFailure {
+    case _ =>
+      Thread.sleep(200)
+      sys.exit(1)
   }
 
-  exitWithProcessor(proc)
+  mkBlockTread() // waitForProcessor(proc)
 }
