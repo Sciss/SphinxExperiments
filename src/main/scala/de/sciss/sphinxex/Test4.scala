@@ -16,6 +16,7 @@ package de.sciss.sphinxex
 import de.sciss.file._
 import de.sciss.processor.Processor
 
+import scala.collection.JavaConverters
 import scala.concurrent.{Future, blocking}
 
 object Test4 extends App {
@@ -26,7 +27,13 @@ object Test4 extends App {
 
   proc.monitor(printResult = false)
   proc.onSuccess {
-    case ParseToJson.Read(_, lattices) => println(s"Recovered ${lattices.size} lattices.")
+    case ParseToJson.Read(_, lattices) =>
+      println(s"Recovered ${lattices.size} lattices.")
+      lattices.foreach { l =>
+        import JavaConverters._
+        val xs = l.getWordResultPath.asScala.map(_.getWord.getSpelling).mkString(" ")
+        println(xs)
+      }
   }
 
   exitWithProcessor(proc)
