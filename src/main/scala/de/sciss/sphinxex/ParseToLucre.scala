@@ -33,22 +33,29 @@ import scala.collection.JavaConverters
 import scala.concurrent.blocking
 
 object ParseToLucre {
-  case class Config(audioInput: File, verbose: Boolean = false)
+  case class Config[S <: Sys[S]](audioInput: File, listH: ListH[S], verbose: Boolean = false)
 
-  type Product[S <: Sys[S]] = stm.Source[S#Tx, SkipList.Map[S, Int, Lattice]]
+  type List [S <: Sys[S]]  = SkipList.Map[S, Int, Lattice]
+  type ListH[S <: Sys[S]]  = stm.Source[S#Tx, List[S]]
 
   trait Factory[S <: Sys[S]] extends ProcessorFactory {
-    type Product  = ParseToLucre.Product[S]
+    type Product  = Unit
     type Repr     = ParseToLucre[S]
-    type Config   = ParseToLucre.Config
+    type Config   = ParseToLucre.Config[S]
   }
 
   def apply[S <: Sys[S]](implicit cursor: stm.Cursor[S]): Factory[S] = new Factory[S] {
     protected def prepare(config: Config): Prepared = new Impl[S](config)
   }
 
+  def mkList[S <: Sys[S]]()(implicit tx: S#Tx): List[S] = {
+    import Lucre.LatticeSerializer
+    val list = SkipList.Map.empty[S, Int, Lattice]
+    list
+  }
+
   // Why the hell we didn't define this in Lucre?
-  private implicit def skipListSerializer[S <: Sys[S]]: Serializer[S#Tx, S#Acc, SkipList.Map[S, Int, Lattice]] =
+  implicit def ProductSerializer[S <: Sys[S]]: Serializer[S#Tx, S#Acc, SkipList.Map[S, Int, Lattice]] =
     anySkipListSer.asInstanceOf[SkipListSer[S]]
 
   private[this] val anySkipListSer = new SkipListSer[NoSys]
@@ -65,17 +72,11 @@ object ParseToLucre {
   @inline
   private[this] val BlockSize = 16
 
-  private final class Impl[S <: Sys[S]](val config: Config)(implicit cursor: stm.Cursor[S])
-    extends ProcessorImpl[Product[S], ParseToLucre[S]] with ParseToLucre[S] {
+  private final class Impl[S <: Sys[S]](val config: Config[S])(implicit cursor: stm.Cursor[S])
+    extends ProcessorImpl[Unit, ParseToLucre[S]] with ParseToLucre[S] {
 
-    protected def body(): Product[S] = blocking {
+    protected def body(): Unit /* List[S] */ = blocking {
       import config._
-
-      val listH = cursor.step { implicit tx =>
-        import Lucre.LatticeSerializer
-        val list = SkipList.Map.empty[S, Int, Lattice]
-        tx.newHandle(list)
-      }
 
       val recConfig = new sphinx.api.Configuration
       import German._
@@ -117,13 +118,13 @@ object ParseToLucre {
       try {
         rec.startRecognition(is)
         loop(0)
-        listH
+        () // listH
       } finally {
         rec.stopRecognition()
       }
     }
   }
 }
-trait ParseToLucre[S <: Sys[S]] extends ProcessorLike[ParseToLucre.Product[S], ParseToLucre[S]] {
-  def config: ParseToLucre.Config
+trait ParseToLucre[S <: Sys[S]] extends ProcessorLike[Unit, ParseToLucre[S]] {
+  def config: ParseToLucre.Config[S]
 }

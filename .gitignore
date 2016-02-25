@@ -4,3 +4,4 @@ src_managed/
 .idea/
 image_out/
 json_out/
+lucre_out
