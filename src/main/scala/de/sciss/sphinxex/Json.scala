@@ -165,7 +165,7 @@ object Json {
 
         for {
           nodeDefs  <- Formats.VecFormat[NodeDef].reads(nodesJ)
-          edgesDefs <- Formats.VecFormat[EdgeDef].reads(edgesJ)
+          edgeDefs  <- Formats.VecFormat[EdgeDef].reads(edgesJ)
         } yield {
 
           val l = new MyLattice // result.Lattice()
@@ -187,7 +187,7 @@ object Json {
             id -> n
           }
 
-          edgesDefs.foreach { d =>
+          edgeDefs.foreach { d =>
             val from = nodes(d.from)
             val to   = nodes(d.to  )
             l.addEdge(from, to, d.as, d.lms)
