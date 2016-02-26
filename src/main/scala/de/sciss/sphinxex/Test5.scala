@@ -23,8 +23,9 @@ import scala.util.{Failure, Success}
 object Test5 extends App {
   sys.props("logLevel") = "WARNING"
 
-  val audioFile = userHome / "Downloads" / "unvorhergesehen-mRsmpCut.wav"  // the lot
-  val lucreDir  = file("lucre_out") / audioFile.replaceExt("lucre").name
+  // val audioFile = userHome / "Downloads" / "unvorhergesehen-mRsmpCut.wav"
+  val audioFile = userHome / "Downloads" / "URF-unvorhergesehen-16k.wav"  // the lot
+  val lucreDir  = file("lucre_out") / "URF-unvorhergesehen.lucre"
   require(!lucreDir.exists())
 
   type S        = Durable

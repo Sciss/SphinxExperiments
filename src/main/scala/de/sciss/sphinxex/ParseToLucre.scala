@@ -31,6 +31,7 @@ import edu.cmu.sphinx.result.Lattice
 import scala.annotation.tailrec
 import scala.collection.JavaConverters
 import scala.concurrent.blocking
+import scala.util.Try
 
 object ParseToLucre {
   case class Config[S <: Sys[S]](audioInput: File, listH: ListH[S], verbose: Boolean = false)
@@ -94,25 +95,35 @@ object ParseToLucre {
       val rec     = new StreamSpeechRecognizer(recConfig)
       val timeFmt = AxisFormat.Time()
 
-      @tailrec def loop(idx: Int): Unit = Option(rec.getResult) match {
-        case Some(speechRes) =>
-          import JavaConverters._
-          val l = speechRes.getLattice
-          cursor.step { implicit tx =>
-            val list = listH()
-            list.add(idx -> l)
-          }
-          val words       = speechRes.getWords.asScala
-          val endFrame    = words.lastOption.map(_.getTimeFrame.getEnd).getOrElse(0L)
-          val end         = endFrame * BlockSize / sampleRate
-          progress        = end / duration
-          if (verbose) {
-            val info = words.mkString(s"${timeFmt.format(end)}: ", ", ", "")
-            println(info)
-          }
-          checkAborted()
-          loop(idx + 1)
-        case None =>
+      @tailrec def loop(idx: Int): Unit = {
+        val res0 = try {
+          rec.getResult
+        } catch {
+          case ex: NullPointerException => // hello Java! seems there is a concurrency bug?
+            println(progress)
+            ex.printStackTrace()
+            Try(rec.getResult).getOrElse(null)
+        }
+        Option(res0) match {
+          case Some(speechRes) =>
+            import JavaConverters._
+            val l = speechRes.getLattice
+            cursor.step { implicit tx =>
+              val list = listH()
+              list.add(idx -> l)
+            }
+            val words       = speechRes.getWords.asScala
+            val endFrame    = words.lastOption.map(_.getTimeFrame.getEnd).getOrElse(0L)
+            val end         = endFrame * BlockSize / sampleRate
+            progress        = end / duration
+            if (verbose) {
+              val info = words.mkString(s"${timeFmt.format(end)}: ", ", ", "")
+              println(info)
+            }
+            checkAborted()
+            loop(idx + 1)
+          case None =>
+        }
       }
 
       try {

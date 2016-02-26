@@ -21,8 +21,7 @@ import edu.cmu.sphinx.result.Nbest
 import scala.collection.JavaConverters
 
 object Test6 extends App {
-  val audioFile = userHome / "Downloads" / "unvorhergesehen-mRsmpCut.wav"
-  val lucreDir  = file("lucre_out") / audioFile.replaceExt("lucre").name
+  val lucreDir  = file("lucre_out") / "URF-unvorhergesehen.lucre"
   require(lucreDir.isDirectory)
 
   type S        = Durable
@@ -36,8 +35,8 @@ object Test6 extends App {
 
   system.step { implicit tx =>
     val list = listH()
-    val lattices = list.valuesIterator.toVector
-    println(s"Recovered ${lattices.size} lattices.")
+    println(s"Recovered ${list.size} lattices.")
+    val lattices = list.valuesIterator // .toVector
     lattices.foreach { l =>
       import JavaConverters._
       val xs = l.getWordResultPath.asScala.map(_.getWord.getSpelling).mkString(" ")
