@@ -16,7 +16,6 @@ package de.sciss.sphinxex
 import de.sciss.file._
 import de.sciss.lucre.stm.Durable
 import de.sciss.lucre.stm.store.BerkeleyDB
-import edu.cmu.sphinx.result.Nbest
 
 import scala.collection.JavaConverters
 
@@ -42,7 +41,7 @@ object Test6 extends App {
       val xs = l.getWordResultPath.asScala.map(_.getWord.getSpelling).mkString(" ")
       println("____")
       println(xs)
-      new Nbest(l).getNbest(4).asScala.foreach(println)
+      BestPaths(l, n = 10).foreach(println)
     }
     sys.exit()
   }
