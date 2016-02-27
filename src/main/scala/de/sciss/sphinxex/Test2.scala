@@ -104,31 +104,9 @@ object Test2 extends App {
   proc.monitor()
   exitWithProcessor(proc)
 
-  private lazy val _initFont: Font = {
-    val url = getClass.getResource("/OpenSans-CondLight.ttf")
-    require(url != null)
-//    if (url == null) {
-//      new Font(Font.SANS_SERIF, Font.PLAIN, 1)
-//    } else {
-      val is = url.openStream()
-      val res = Font.createFont(Font.TRUETYPE_FONT, is)
-      is.close()
-      res
-//    }
-    //      // "SF Movie Poster Condensed"
-    //      new Font( "BellySansCondensed", Font.PLAIN, 12 )
-  }
-
-  private var _condensedFont: Font = _
-
-  def condensedFont: Font = {
-    if (_condensedFont == null) _condensedFont = _initFont
-    _condensedFont
-  }
-
   def process(self: Processor.Body, g: Graphics2D): Unit = {
     g.setColor(Color.black)
-    val font = condensedFont.deriveFont(16f) // bloody f*cking FLOAT not INT, thanks Java for a great API
+    val font = MyFont(16f)
     g.setFont(font)
     val fm   = g.getFontMetrics
 

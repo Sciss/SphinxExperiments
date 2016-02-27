@@ -13,14 +13,15 @@
 
 package de.sciss.sphinxex
 
-import java.awt.{Color, Font, RenderingHints}
+import java.awt.{Color, RenderingHints}
+import javax.swing.Timer
 
 import de.sciss.numbers
 import de.sciss.shapeint.ShapeInterpolator
 
 import scala.swing.Swing._
-import scala.swing.event.{EditDone, ValueChanged}
-import scala.swing.{BorderPanel, BoxPanel, Component, Frame, Graphics2D, Orientation, Slider, SwingApplication, TextField}
+import scala.swing.event.{ButtonClicked, EditDone, ValueChanged}
+import scala.swing.{BorderPanel, BoxPanel, CheckBox, Component, Frame, Graphics2D, Orientation, Slider, SwingApplication, TextField}
 
 /*
   Ok, that SwingX class doesn't handle SEG_MOVETO.
@@ -33,6 +34,9 @@ import scala.swing.{BorderPanel, BoxPanel, Component, Frame, Graphics2D, Orienta
  */
 object MorphTest extends SwingApplication {
   def startup(args: Array[String]): Unit = {
+    var timer = Option.empty[Timer]
+    var timerStep = 1.0f / 30
+
     def mkText(init: String) = new TextField(init, 8) {
       listenTo(this)
       reactions += {
@@ -51,10 +55,41 @@ object MorphTest extends SwingApplication {
       }
     }
 
+    import numbers.Implicits._
+
+    def fraction: Float =
+      ggSlider.value.linlin(ggSlider.min, ggSlider.max, 0, 1)
+
+    def fraction_=(value: Float): Unit =
+      ggSlider.value = (value.linlin(0, 1, ggSlider.min, ggSlider.max) + 0.5).toInt
+
+    lazy val ggTimer = new CheckBox("Animate") {
+      listenTo(this)
+      reactions += {
+        case ButtonClicked(_) =>
+          timer.foreach(_.stop())
+          if (selected) {
+            val t = new Timer(30, ActionListener { _ =>
+              val f1 = fraction + timerStep
+              if (f1 < 0 || f1 > 1) {
+                timerStep = -timerStep
+              }
+              fraction_=(f1.clip(0, 1))
+              toolkit.sync()  // Linux bug
+            })
+            t.setRepeats(true)
+            timer = Some(t)
+            t.start()
+          } else {
+            timer = None
+          }
+      }
+    }
+
     lazy val ggShape: Component = new Component {
       preferredSize = (480, 120)
 
-      font        = new Font(Font.SANS_SERIF, Font.PLAIN, 48)
+      font        = MyFont(64) // new Font(Font.SANS_SERIF, Font.PLAIN, 64)
       background  = Color.black
       foreground  = Color.white
 
@@ -64,7 +99,8 @@ object MorphTest extends SwingApplication {
         val h = peer.getHeight
         g.fillRect(0, 0, w, h)
         g.setColor(foreground)
-        g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON)
+        g.setRenderingHint(RenderingHints.KEY_ANTIALIASING  , RenderingHints.VALUE_ANTIALIAS_ON)
+        g.setRenderingHint(RenderingHints.KEY_STROKE_CONTROL, RenderingHints.VALUE_STROKE_PURE )
 
         val frc       = g.getFontRenderContext
         val font      = g.getFont
@@ -90,11 +126,10 @@ object MorphTest extends SwingApplication {
 
         // val shpMorph  = new Morphing2D(shpA, shpB)
         val shpMorph  = new ShapeInterpolator
-        import numbers.Implicits._
-        val f         = ggSlider.value.linlin(ggSlider.min, ggSlider.max, 0, 1)
+        val f         = fraction
         // shpMorph.setMorphing(f)
         // val shp   = shpMorph
-        val shp   = shpMorph.evaluate(shpA, shpB, f, false)
+        val shp   = shpMorph.evaluate(shpA, shpB, f, true)
         val r     = shp.getBounds
         val rx    = r.getMinX //  0.0 // math.min(r.getMinX, r.getMaxX)
         val ry    = r.getMinY // -36.0 // math.min(r.getMinY, r.getMaxY)
@@ -107,6 +142,7 @@ object MorphTest extends SwingApplication {
       contents += ggTextA
       contents += ggTextB
       contents += ggSlider
+      contents += ggTimer
     }
 
     new Frame {
