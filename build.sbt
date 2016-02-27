@@ -16,5 +16,5 @@ libraryDependencies ++= Seq(
   "de.sciss" %% "pdflitz"           % "1.2.1",
   "de.sciss" %% "play-json-sealed"  % "0.4.0",
   "de.sciss" %% "lucre"             % "3.3.0",
-  "org.swinglabs.swingx" % "swingx-graphics" % "1.6.5-1"
+  "de.sciss" %  "shapeinterpolator" % "0.1.0"
 )
