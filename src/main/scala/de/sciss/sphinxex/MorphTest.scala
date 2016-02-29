@@ -13,6 +13,7 @@
 
 package de.sciss.sphinxex
 
+import java.awt.geom.AffineTransform
 import java.awt.{Color, RenderingHints}
 import javax.swing.Timer
 
@@ -33,6 +34,8 @@ import scala.swing.{BorderPanel, BoxPanel, CheckBox, Component, Frame, Graphics2
 
  */
 object MorphTest extends SwingApplication {
+  private final val PiH = (math.Pi/2).toFloat
+
   def startup(args: Array[String]): Unit = {
     var timer = Option.empty[Timer]
     var timerStep = 1.0f / 30
@@ -46,8 +49,8 @@ object MorphTest extends SwingApplication {
 
 //    lazy val ggTextA  = mkText("N")
 //    lazy val ggTextB  = mkText("Z")
-    lazy val ggTextA  = mkText("EINGANGE")
-    lazy val ggTextB  = mkText("IN GANG" )
+    lazy val ggTextA  = mkText("BEIM NACHDENKEN ÜBER") // "EINGANGE"
+    lazy val ggTextB  = mkText("BEI NACHT IN ÜBER") // "IN GANG"
     lazy val ggSlider = new Slider {
       listenTo(this)
       reactions += {
@@ -104,24 +107,78 @@ object MorphTest extends SwingApplication {
 
         val frc       = g.getFontRenderContext
         val font      = g.getFont
-        val vecA      = font.createGlyphVector(frc, ggTextA.text)
-        val vecB      = font.createGlyphVector(frc, ggTextB.text)
+        val txtA      = ggTextA.text
+        val txtB      = ggTextB.text
+        val vecA      = font.createGlyphVector(frc, txtA)
+        val vecB      = font.createGlyphVector(frc, txtB)
+        val trans     = EditTranscript(txtA, txtB)
         // val shpA      = vecA.getOutline
         // val shpB      = vecB.getOutline
-        val numGlyphs = math.min(vecA.getNumGlyphs, vecB.getNumGlyphs)
+        val numT      = trans.length // math.min(vecA.getNumGlyphs, vecB.getNumGlyphs)
 
         // val r     = shp.getBounds
         val rx    =   0.0 // r.getMinX //  0.0 // math.min(r.getMinX, r.getMaxX)
-        val ry    = -44.0 // r.getMinY // -36.0 // math.min(r.getMinY, r.getMaxY)
+        val ry    = -56.0 // r.getMinY // -36.0 // math.min(r.getMinY, r.getMaxY)
         g.translate(-rx + 8, -ry + 8)
 
         val shpMorph  = new ShapeInterpolator
-        val f         = fraction
-        for (i <- 0 until numGlyphs) {
-          val shpA  = vecA.getGlyphOutline(i)
-          val shpB  = vecB.getGlyphOutline(i)
-          val shp   = shpMorph.evaluate(shpA, shpB, f, true)
-          g.fill(shp) // shpMorph)
+        val f         = fraction.linlin(0, 1, -PiH, PiH).sin.linlin(-1, 1, 0, 1)
+        var aIdx      = 0
+        var bIdx      = 0
+        var tIdx      = 0
+        while (tIdx < numT) {
+          import EditTranscript._
+          val edit = trans.charAt(tIdx)
+          if (edit == Copy) {
+            val shpA  = vecA.getGlyphOutline(aIdx)
+            val posA  = vecA.getGlyphPosition(aIdx).getX
+            val posB  = vecB.getGlyphPosition(bIdx).getX
+            val shp   = if (f == 0) shpA else {
+              val dx = f.linlin(0, 1, 0, posB - posA)
+              val at = AffineTransform.getTranslateInstance(dx, 0)
+              at.createTransformedShape(shpA)
+            }
+            g.fill(shp)
+
+            // Note: treat S(' ', _) as I and treat S(_, ' ') as D
+          } else if (edit == Substitute && txtA.charAt(aIdx) != ' ' && txtB.charAt(bIdx) != ' ') {
+            val shpA  = vecA.getGlyphOutline(aIdx)
+            val shpB  = vecB.getGlyphOutline(bIdx)
+            val shp   = shpMorph.evaluate(shpA, shpB, f, true)
+            g.fill(shp)
+
+          } else if (edit == Insert || (edit == Substitute && txtA.charAt(aIdx) == ' ')) {
+            if (f > 0) {
+              val shpB  = vecB.getGlyphOutline(bIdx)
+              val shp   = if (f == 1) shpB else {
+                val r     = shpB.getBounds2D
+                val scale = f
+                val at    = AffineTransform.getTranslateInstance(r.getCenterX, r.getCenterY)
+                at.scale(scale, scale)
+                at.translate(-r.getCenterX, -r.getCenterY)
+                at.createTransformedShape(shpB)
+              }
+              g.fill(shp)
+            }
+
+          } else /* Delete */ {
+            if (f < 1) {
+              val shpA  = vecA.getGlyphOutline(aIdx)
+              val shp   = if (f == 0) shpA else {
+                val r     = shpA.getBounds2D
+                val scale = 1 - f
+                val at    = AffineTransform.getTranslateInstance(r.getCenterX, r.getCenterY)
+                at.scale(scale, scale)
+                at.translate(-r.getCenterX, -r.getCenterY)
+                at.createTransformedShape(shpA)
+              }
+              g.fill(shp)
+            }
+          }
+
+          tIdx += 1
+          if (edit != Insert) aIdx += 1
+          if (edit != Delete) bIdx += 1
         }
       }
     }

@@ -16,6 +16,11 @@ package de.sciss.sphinxex
 import scala.annotation.tailrec
 
 object EditTranscript {
+  final val Copy        = '-'
+  final val Substitute  = 'S'
+  final val Insert      = 'I'
+  final val Delete      = 'D'
+
   /** Calculates the edit transcript from one string `a` to another `b`,
     * trying to minimise the cost of operations.
     *
