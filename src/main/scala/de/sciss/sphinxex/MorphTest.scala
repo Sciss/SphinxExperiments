@@ -106,35 +106,23 @@ object MorphTest extends SwingApplication {
         val font      = g.getFont
         val vecA      = font.createGlyphVector(frc, ggTextA.text)
         val vecB      = font.createGlyphVector(frc, ggTextB.text)
-        val shpA      = vecA.getOutline
-        val shpB      = vecB.getOutline
+        // val shpA      = vecA.getOutline
+        // val shpB      = vecB.getOutline
+        val numGlyphs = math.min(vecA.getNumGlyphs, vecB.getNumGlyphs)
 
-//        val itA = shpA.getPathIterator(g.getTransform)
-//        val arr = new Array[Float](6)
-//        while (!itA.isDone) {
-//          val tpe  = itA.currentSegment(arr)
-//          val name = tpe match {
-//            case PathIterator.SEG_MOVETO => "move-to"
-//            case PathIterator.SEG_LINETO => "line-to"
-//            case PathIterator.SEG_QUADTO => "quad-to"
-//            case PathIterator.SEG_CUBICTO=> "cube-to"
-//            case PathIterator.SEG_CLOSE  => "close"
-//          }
-//          println(name)
-//          itA.next()
-//        }
+        // val r     = shp.getBounds
+        val rx    =   0.0 // r.getMinX //  0.0 // math.min(r.getMinX, r.getMaxX)
+        val ry    = -44.0 // r.getMinY // -36.0 // math.min(r.getMinY, r.getMaxY)
+        g.translate(-rx + 8, -ry + 8)
 
-        // val shpMorph  = new Morphing2D(shpA, shpB)
         val shpMorph  = new ShapeInterpolator
         val f         = fraction
-        // shpMorph.setMorphing(f)
-        // val shp   = shpMorph
-        val shp   = shpMorph.evaluate(shpA, shpB, f, true)
-        val r     = shp.getBounds
-        val rx    = r.getMinX //  0.0 // math.min(r.getMinX, r.getMaxX)
-        val ry    = r.getMinY // -36.0 // math.min(r.getMinY, r.getMaxY)
-        g.translate(-rx + 8, -ry + 8)
-        g.fill(shp) // shpMorph)
+        for (i <- 0 until numGlyphs) {
+          val shpA  = vecA.getGlyphOutline(i)
+          val shpB  = vecB.getGlyphOutline(i)
+          val shp   = shpMorph.evaluate(shpA, shpB, f, true)
+          g.fill(shp) // shpMorph)
+        }
       }
     }
 
