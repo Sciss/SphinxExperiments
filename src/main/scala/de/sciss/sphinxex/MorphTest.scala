@@ -26,15 +26,6 @@ import scala.swing.Swing._
 import scala.swing.event.{ButtonClicked, EditDone, ValueChanged}
 import scala.swing.{BorderPanel, BoxPanel, CheckBox, Component, Frame, Graphics2D, Orientation, Slider, SwingApplication, TextField}
 
-/*
-  Ok, that SwingX class doesn't handle SEG_MOVETO.
-  Possible alternatives:
-  - http://www.reportmill.com/snap1/javadoc/com/reportmill/shape/RMMorphShape.Morphing2D.html
-    (proprietary, seems they just stole the LGPL'ed SwingX code)
-  - https://gist.github.com/Sciss/d7456f71f2de12fac2e0
-  - https://searchcode.com/codesearch/view/64647380/
-
- */
 object MorphTest extends SwingApplication {
   private final val PiH = (math.Pi/2).toFloat
 
@@ -58,7 +49,7 @@ object MorphTest extends SwingApplication {
   }
 
   def startup(args: Array[String]): Unit = {
-    var timer = Option.empty[Timer]
+    var timer     = Option.empty[Timer]
     var timerStep = 1.0f / 30
 
     def mkText(init: String) = new TextField(init, 8) {
@@ -68,8 +59,6 @@ object MorphTest extends SwingApplication {
       }
     }
 
-//    lazy val ggTextA  = mkText("N")
-//    lazy val ggTextB  = mkText("Z")
     lazy val ggTextA  = mkText("D") // "BEIM NACHDENKEN ÜBER" // "EINGANGE"
     lazy val ggTextB  = mkText("O") // "BEI NACHT IN ÜBER" // "IN GANG"
     lazy val ggSlider = new Slider {
@@ -120,7 +109,7 @@ object MorphTest extends SwingApplication {
     lazy val ggShape: Component = new Component {
       preferredSize = (480, 120)
 
-      font        = MyFont(64) // new Font(Font.SANS_SERIF, Font.PLAIN, 64)
+      font        = MyFont(64)
       background  = Color.black
       foreground  = Color.white
 
@@ -140,11 +129,8 @@ object MorphTest extends SwingApplication {
         val vecA      = font.createGlyphVector(frc, txtA)
         val vecB      = font.createGlyphVector(frc, txtB)
         val trans     = EditTranscript(txtA, txtB)
-        // val shpA      = vecA.getOutline
-        // val shpB      = vecB.getOutline
-        val numT      = trans.length // math.min(vecA.getNumGlyphs, vecB.getNumGlyphs)
+        val numT      = trans.length
 
-        // val r     = shp.getBounds
         val rx    =   0.0 // r.getMinX //  0.0 // math.min(r.getMinX, r.getMaxX)
         val ry    = -56.0 // r.getMinY // -36.0 // math.min(r.getMinY, r.getMaxY)
         g.translate(-rx + 8, -ry + 8)
@@ -209,7 +195,7 @@ object MorphTest extends SwingApplication {
               // segm.foreach(println)
 
               val iShift1 = iShift % segm.size
-              val res     = if (iShift1 == 0)P shpA0 else {
+              val res     = if (iShift1 == 0) shpA0 else {
                 val (pre, suf)  = segm.splitAt(iShift1)
                 val (PathMove(x0, y0) +: preTail) = pre.flatten
                 val (PathLine(x1, y1) +: sufInner :+ PathClose) = suf.flatten
@@ -219,34 +205,12 @@ object MorphTest extends SwingApplication {
                 p.lineTo(x0, y0)
                 preTail.foreach(_.addTo(p))
                 p.closePath()
-                itGroup.foreach { cmds =>
-                  cmds.foreach(_.addTo(p))
+                itGroup.foreach { commands =>
+                  commands.foreach(_.addTo(p))
                 }
                 p
               }
 
-              //            val it = shpA.getPathIterator(null)
-              //            if (!it.isDone) {
-              //              val c0   = new Array[Float](6)
-              //              val c1   = new Array[Float](6)
-              //              val code = it.currentSegment(c0)
-              //              require(code == PathIterator.SEG_MOVETO)
-              //              var next = code
-              ////              it.next()
-              //              println("----------")
-              //              while (!it.isDone) {
-              //                next = it.currentSegment(c1)
-              //                val name = next match {
-              //                  case PathIterator.SEG_MOVETO  => f"move ${c1(0)}%1.1f, ${c1(1)}%1.1f"
-              //                  case PathIterator.SEG_LINETO  => f"line ${c1(0)}%1.1f, ${c1(1)}%1.1f"
-              //                  case PathIterator.SEG_QUADTO  => f"quad ${c1(0)}%1.1f, ${c1(1)}%1.1f"
-              //                  case PathIterator.SEG_CUBICTO => f"cubi ${c1(0)}%1.1f, ${c1(1)}%1.1f"
-              //                  case PathIterator.SEG_CLOSE   => "close"
-              //                }
-              //                println(s"  $name")
-              //                it.next()
-              //              }
-              //            }
               res
             }
 
