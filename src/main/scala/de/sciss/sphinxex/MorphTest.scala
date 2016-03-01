@@ -13,12 +13,14 @@
 
 package de.sciss.sphinxex
 
-import java.awt.geom.AffineTransform
+import java.awt.geom.{Path2D, PathIterator, AffineTransform}
 import java.awt.{Color, RenderingHints}
-import javax.swing.Timer
+import javax.swing.{SpinnerNumberModel, Timer}
 
+import de.sciss.kollflitz
 import de.sciss.numbers
 import de.sciss.shapeint.ShapeInterpolator
+import de.sciss.swingplus.Spinner
 
 import scala.swing.Swing._
 import scala.swing.event.{ButtonClicked, EditDone, ValueChanged}
@@ -36,6 +38,25 @@ import scala.swing.{BorderPanel, BoxPanel, CheckBox, Component, Frame, Graphics2
 object MorphTest extends SwingApplication {
   private final val PiH = (math.Pi/2).toFloat
 
+  sealed trait PathCmd {
+    def addTo(p: Path2D): Unit
+  }
+  final case class PathMove(x: Double, y: Double) extends PathCmd {
+    def addTo(p: Path2D): Unit = p.moveTo(x, y)
+  }
+  final case class PathLine(x: Double, y: Double) extends PathCmd {
+    def addTo(p: Path2D): Unit = p.lineTo(x, y)
+  }
+  final case class PathQuad(x1: Double, y1: Double, x2: Double, y2: Double) extends PathCmd {
+    def addTo(p: Path2D): Unit = p.quadTo(x1, y1, x2, y2)
+  }
+  final case class PathCube(x1: Double, y1: Double, x2: Double, y2: Double, x3: Double, y3: Double) extends PathCmd {
+    def addTo(p: Path2D): Unit = p.curveTo(x1, y1, x2, y2, x3, y3)
+  }
+  case object PathClose extends PathCmd {
+    def addTo(p: Path2D): Unit = p.closePath()
+  }
+
   def startup(args: Array[String]): Unit = {
     var timer = Option.empty[Timer]
     var timerStep = 1.0f / 30
@@ -49,9 +70,16 @@ object MorphTest extends SwingApplication {
 
 //    lazy val ggTextA  = mkText("N")
 //    lazy val ggTextB  = mkText("Z")
-    lazy val ggTextA  = mkText("BEIM NACHDENKEN ÜBER") // "EINGANGE"
-    lazy val ggTextB  = mkText("BEI NACHT IN ÜBER") // "IN GANG"
+    lazy val ggTextA  = mkText("D") // "BEIM NACHDENKEN ÜBER" // "EINGANGE"
+    lazy val ggTextB  = mkText("O") // "BEI NACHT IN ÜBER" // "IN GANG"
     lazy val ggSlider = new Slider {
+      listenTo(this)
+      reactions += {
+        case ValueChanged(_) => ggShape.repaint()
+      }
+    }
+    lazy val mShift   = new SpinnerNumberModel(0, 0, 32, 1)
+    lazy val ggShift  = new Spinner(mShift) {
       listenTo(this)
       reactions += {
         case ValueChanged(_) => ggShape.repaint()
@@ -142,8 +170,86 @@ object MorphTest extends SwingApplication {
 
             // Note: treat S(' ', _) as I and treat S(_, ' ') as D
           } else if (edit == Substitute && txtA.charAt(aIdx) != ' ' && txtB.charAt(bIdx) != ' ') {
-            val shpA  = vecA.getGlyphOutline(aIdx)
+            val shpA0 = vecA.getGlyphOutline(aIdx)
             val shpB  = vecB.getGlyphOutline(bIdx)
+
+            val iShift = mShift.getNumber.intValue()
+            val shpA  = if (iShift == 0) shpA0 else {
+              val it  = shpA0.getPathIterator(null)
+              val vb  = Vector.newBuilder[PathCmd]
+              val c   = new Array[Double](6)
+              // first create a collection of commands
+              while (!it.isDone) {
+                import PathIterator._
+                val cmd = it.currentSegment(c) match {
+                  case SEG_MOVETO  => PathMove(c(0), c(1))
+                  case SEG_LINETO  => PathLine(c(0), c(1))
+                  case SEG_QUADTO  => PathQuad(c(0), c(1), c(2), c(3))
+                  case SEG_CUBICTO => PathCube(c(0), c(1), c(2), c(3), c(4), c(5))
+                  case SEG_CLOSE   => PathClose
+                }
+                vb += cmd
+                it.next()
+              }
+              val v = vb.result()
+
+              import kollflitz.Ops._
+              val itGroup = v.groupWith {
+                case (PathClose, PathMove(_, _)) => false
+                case _ => true
+              }
+              val head = itGroup.next()
+
+              val segm = head.groupWith {
+                case (_, PathLine(_, _)) => false
+                case _ => true
+              } .toIndexedSeq
+
+              // println("----SEGM----")
+              // segm.foreach(println)
+
+              val iShift1 = iShift % segm.size
+              val res     = if (iShift1 == 0)P shpA0 else {
+                val (pre, suf)  = segm.splitAt(iShift1)
+                val (PathMove(x0, y0) +: preTail) = pre.flatten
+                val (PathLine(x1, y1) +: sufInner :+ PathClose) = suf.flatten
+                val p = new Path2D.Float()
+                p.moveTo(x1, y1)
+                sufInner.foreach(_.addTo(p))
+                p.lineTo(x0, y0)
+                preTail.foreach(_.addTo(p))
+                p.closePath()
+                itGroup.foreach { cmds =>
+                  cmds.foreach(_.addTo(p))
+                }
+                p
+              }
+
+              //            val it = shpA.getPathIterator(null)
+              //            if (!it.isDone) {
+              //              val c0   = new Array[Float](6)
+              //              val c1   = new Array[Float](6)
+              //              val code = it.currentSegment(c0)
+              //              require(code == PathIterator.SEG_MOVETO)
+              //              var next = code
+              ////              it.next()
+              //              println("----------")
+              //              while (!it.isDone) {
+              //                next = it.currentSegment(c1)
+              //                val name = next match {
+              //                  case PathIterator.SEG_MOVETO  => f"move ${c1(0)}%1.1f, ${c1(1)}%1.1f"
+              //                  case PathIterator.SEG_LINETO  => f"line ${c1(0)}%1.1f, ${c1(1)}%1.1f"
+              //                  case PathIterator.SEG_QUADTO  => f"quad ${c1(0)}%1.1f, ${c1(1)}%1.1f"
+              //                  case PathIterator.SEG_CUBICTO => f"cubi ${c1(0)}%1.1f, ${c1(1)}%1.1f"
+              //                  case PathIterator.SEG_CLOSE   => "close"
+              //                }
+              //                println(s"  $name")
+              //                it.next()
+              //              }
+              //            }
+              res
+            }
+
             val shp   = shpMorph.evaluate(shpA, shpB, f, true)
             g.fill(shp)
 
@@ -187,6 +293,7 @@ object MorphTest extends SwingApplication {
       contents += ggTextA
       contents += ggTextB
       contents += ggSlider
+      contents += ggShift
       contents += ggTimer
     }
 
