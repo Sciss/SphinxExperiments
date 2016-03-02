@@ -16,7 +16,6 @@ package de.sciss.sphinxex
 import edu.cmu.sphinx.result.{BoundedPriorityQueue, Lattice, Node}
 
 import scala.collection.{JavaConverters, mutable}
-import scala.collection.immutable.{IndexedSeq => Vec}
 
 object BestPaths {
   final class Path(val nodes: Vec[Node], val score: Double, private[BestPaths] val fwdScore: Double)

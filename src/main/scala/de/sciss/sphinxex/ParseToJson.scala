@@ -28,7 +28,6 @@ import edu.cmu.sphinx.result
 
 import scala.annotation.tailrec
 import scala.collection.{breakOut, JavaConverters}
-import scala.collection.immutable.{IndexedSeq => Vec}
 import scala.concurrent.blocking
 
 object ParseToJson extends ProcessorFactory {

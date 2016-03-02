@@ -13,6 +13,8 @@
 
 package de.sciss.sphinxex
 
+import de.sciss.kollflitz
+
 import scala.annotation.tailrec
 
 object EditTranscript {
@@ -20,6 +22,106 @@ object EditTranscript {
   final val Substitute  = 'S'
   final val Insert      = 'I'
   final val Delete      = 'D'
+
+  def align(xs: Vec[String], fill: Char = '*'): Vec[String] =
+    alignWith(xs.map(_.map(ch => (ch, ch))), fill = fill).map(_.mkString)
+
+  def alignWith[A](xs: Vec[Vec[(Char, A)]], fill: A): Vec[Vec[A]] = {
+    /*
+        say the input is:
+
+        "from"
+        "chrome"
+        "case"
+        "place"
+        "ice"
+        "inner"
+
+        then the pairwise transcripts are:
+
+        "SI---I"
+        "-SSDD-"
+        "SI-S-"
+        "SDD--"
+        "-SI-I"
+
+        the output would be:
+
+                'S' 'I'    '---' 'I'     '-SS'  'DD'     'S'   'I'   '-S-'          'S'   'DD'         '-S'          'I-I'
+        "from"      "f*rom"     "f*rom*" |    "f*rom*" |    "f**rom*"    "f**rom*" |    "f**rom*" |    "f**rom*"     "f**r*o*m*"
+        "chrome" -> "chrome" -> "chrome" | -> "chrome" | -> "c*hrome" -> "c*hrome" | -> "c*hrome" | -> "c*hrome"  -> "c*hr*o*me"
+        "case"      "case"      "case"   |    "cas**e" |    "c*as**e"    "c*as**e" |    "c*as**e" |    "c*as**e"     "c*as***e*"
+        "place"     "place"     "place"  |    "place"  |    "place"      "plac**e" |    "plac**e" |    "plac**e"     "plac***e*"
+        "ice"       "ice"       "ice"    |    "ice"    |    "ice"        "ice"     |    "i**c**e" |    "i**c**e"     "i**c***e*"
+        "inner"     "inner"     "inner"  |    "inner"  |    "inner"      "inner"   |    "inner"   |    "i**nner"     "i**nn**er"
+
+        And the last action can be improved: an 'I' where a place holder '*' is found is "swalled". Thus:
+
+        f**rom**
+        c*hrome*
+        c*as**e*
+        plac**e*
+        i**c**e*
+        i**nn*er
+
+        So the algorithm is as follows:
+
+        - push head so seq A
+        - pair tail with transcripts as B
+        - foreach pair (x, t) in B, zip it with a = A.last, generate new row y
+          - look at t
+            - '-' or 'S': while a contains placeholder, insert placeholder in y, then skip in a / copy from x to y
+            - 'I': if a contains placeholder, then skip in a / copy from x to y
+                   if not, insert placeholder in a and all preceding vectors, copy from x to y
+            - 'D': skip in a, insert placeholder in y
+           - finally pad y to length of a
+         - append y to A and repeat with previous tail
+     */
+
+    import kollflitz.Ops._
+    val paired = xs.mapPairs { (pred, succ) =>
+      val (predChar, _    ) = pred.unzip
+      val (succChar, succA) = succ.unzip
+      val trans = apply(predChar.mkString, succChar.mkString)
+      (succA, trans)
+    }
+
+    // This is terrible to write with tail recursive functions. We resort to loops...
+    var done = xs.take(1).map(_.map(_._2))
+    paired.foreach { case (x, t) =>
+      var a     = done.last
+      var aIdx  = 0
+      var xIdx  = 0
+      var y     = Vector.empty[A]
+      t.foreach {
+        case Copy | Substitute =>
+          while (a(aIdx) == fill) {
+            aIdx += 1
+            y   :+= fill
+          }
+          aIdx += 1
+          y   :+= x(xIdx)
+          xIdx += 1
+
+        case Insert =>
+          if (aIdx == a.length || a(aIdx) != fill) {
+            done  = done.map(_.insert(aIdx, fill))  // insert placeholder
+            a     = done.last
+          }
+          aIdx += 1
+          y   :+= x(xIdx)
+          xIdx += 1
+
+        case Delete =>
+          aIdx += 1
+          y   :+= fill
+      }
+
+      done :+= y.padTo(aIdx, fill)
+    }
+
+    done
+  }
 
   /** Calculates the edit transcript from one string `a` to another `b`,
     * trying to minimise the cost of operations.

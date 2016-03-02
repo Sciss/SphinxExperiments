@@ -17,7 +17,6 @@ import de.sciss.serial.{DataInput, DataOutput, ImmutableSerializer}
 import edu.cmu.sphinx.linguist.dictionary.{Dictionary, Word}
 import edu.cmu.sphinx.result
 
-import scala.collection.immutable.{IndexedSeq => Vec}
 import scala.collection.{JavaConverters, breakOut}
 import scala.language.implicitConversions
 

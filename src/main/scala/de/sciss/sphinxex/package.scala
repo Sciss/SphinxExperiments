@@ -13,11 +13,19 @@
 
 package de.sciss
 
-import de.sciss.processor.{Processor, ProcessorLike}
+import de.sciss.processor.ProcessorLike
 
-import scala.concurrent.{ExecutionContextExecutor, ExecutionContext}
+import scala.concurrent.{ExecutionContext, ExecutionContextExecutor}
 
 package object sphinxex {
+  type Vec[+A]  = scala.collection.immutable.IndexedSeq[A]
+  val  Vec      = scala.collection.immutable.IndexedSeq
+
+  implicit final class VecOps[A](private val in: Vec[A]) extends AnyVal {
+    def removeAt(index: Int         ): Vec[A] = in.patch(index, Nil        , 1)
+    def insert  (index: Int, elem: A): Vec[A] = in.patch(index, elem :: Nil, 0)
+  }
+
   def mkBlockTread(): AnyRef = {
     val sync = new AnyRef
     val t = new Thread {

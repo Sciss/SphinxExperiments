@@ -19,3 +19,9 @@ libraryDependencies ++= Seq(
   "de.sciss" %% "kollflitz"         % "0.2.0",
   "de.sciss" %  "shapeinterpolator" % "0.1.0"
 )
+
+initialCommands in console :=
+  """import de.sciss.sphinxex._
+    |import de.sciss.kollflitz.Ops._
+    |import de.sciss.numbers.Implicits._
+    |import de.sciss.file._""".stripMargin
