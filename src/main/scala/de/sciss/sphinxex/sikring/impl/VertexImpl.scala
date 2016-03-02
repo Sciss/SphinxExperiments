@@ -16,18 +16,15 @@ package sikring
 package impl
 
 import java.awt.Shape
-import java.awt.geom.{Path2D, AffineTransform}
+import java.awt.geom.AffineTransform
 
 import de.sciss.shapeint.ShapeInterpolator
 
 import scala.collection.immutable.{IndexedSeq => Vec}
-import scala.concurrent.stm.{Ref, InTxn}
+import scala.concurrent.stm.{InTxn, Ref}
 
-object VertexImpl {
-  private val EmptyShape: Shape = new Path2D.Float
-}
-final class VertexImpl(startTime: Int, phasePeriod: Int, seq: Vec[Option[Shape]]) extends Vertex {
-  import VertexImpl.EmptyShape
+final class VertexImpl(startTime: Int, phasePeriod: Int, seq: Vec[Shape]) extends Vertex {
+  import Vertex.EmptyShape
 
   private[this] val stepRef   = Ref(0)
   private[this] val phaseRef  = Ref(0.0)
@@ -41,9 +38,9 @@ final class VertexImpl(startTime: Int, phasePeriod: Int, seq: Vec[Option[Shape]]
   def tick(time: Int)(implicit tx: InTxn): Unit = {
     val dt      = time - startTime
     val step    = (dt / phasePeriod) % seq.size
-    val phase   =  dt % phasePeriod
-    val w0      = if (seq (step)                .isDefined) 1.0 else 0.0
-    val w1      = if (seq((step + 1) % seq.size).isDefined) 1.0 else 0.0
+    val phase   = (dt % phasePeriod).toDouble / phasePeriod
+    val w0      = if (seq (step)                 == EmptyShape) 0.0 else 1.0
+    val w1      = if (seq((step + 1) % seq.size) == EmptyShape) 0.0 else 1.0
     val weight  = w0 * (1 - phase) + w1 * phase
     stepRef()   = step
     phaseRef()  = phase
@@ -60,12 +57,10 @@ final class VertexImpl(startTime: Int, phasePeriod: Int, seq: Vec[Option[Shape]]
     val shpAOpt = seq (step)
     val shpBOpt = seq((step + 1) % seq.size)
     val shp     = (shpAOpt, shpBOpt) match {
-      case (Some(shpA), Some(shpB)) =>
-        if (shpA == shpB) shpA else {
-          ShapeInterpolator.apply(shpA, shpB, phaseRef().toFloat, true)
-        }
+      case (EmptyShape, EmptyShape) =>
+        EmptyShape
 
-      case (Some(shpA), None) =>
+      case (shpA, EmptyShape) =>
         val r     = shpA.getBounds2D
         val scale = weightRef()
         val at    = AffineTransform.getTranslateInstance(r.getCenterX, r.getCenterY)
@@ -73,7 +68,7 @@ final class VertexImpl(startTime: Int, phasePeriod: Int, seq: Vec[Option[Shape]]
         at.translate(-r.getCenterX, -r.getCenterY)
         at.createTransformedShape(shpA)
 
-      case (None, Some(shpB)) =>
+      case (EmptyShape, shpB) =>
         val r     = shpB.getBounds2D
         val scale = weightRef()
         val at    = AffineTransform.getTranslateInstance(r.getCenterX, r.getCenterY)
@@ -81,8 +76,10 @@ final class VertexImpl(startTime: Int, phasePeriod: Int, seq: Vec[Option[Shape]]
         at.translate(-r.getCenterX, -r.getCenterY)
         at.createTransformedShape(shpB)
 
-      case (None, None) =>
-        EmptyShape
+      case (shpA, shpB) =>
+        if (shpA == shpB) shpA else {
+          ShapeInterpolator.apply(shpA, shpB, phaseRef().toFloat, true)
+        }
     }
     shapeRef()  = shp
     val r       = shp.getBounds2D

@@ -15,6 +15,7 @@ package de.sciss.sphinxex
 package sikring
 
 import java.awt.Shape
+import java.awt.geom.Path2D
 
 import de.sciss.sphinxex.sikring.impl.VertexImpl
 
@@ -22,7 +23,9 @@ import scala.collection.immutable.{IndexedSeq => Vec}
 import scala.concurrent.stm.InTxn
 
 object Vertex {
-  def apply(startTime: Int, phasePeriod: Int, seq: Vec[Option[Shape]]): Vertex =
+  final val EmptyShape: Shape = new Path2D.Float
+
+  def apply(startTime: Int, phasePeriod: Int, seq: Vec[Shape]): Vertex =
     new VertexImpl(startTime = startTime, phasePeriod = phasePeriod, seq = seq)
 }
 trait Vertex {

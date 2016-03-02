@@ -14,11 +14,13 @@
 package de.sciss.sphinxex
 package sikring
 
+import de.sciss.sphinxex.sikring.impl.GraphImpl
+
 import scala.concurrent.stm.InTxn
 import scala.swing.Graphics2D
 
 object Graph {
-  def apply(): Graph = ???
+  def apply(): Graph = new GraphImpl
 }
 trait Graph {
   def addVertex   (v: Vertex)(implicit tx: InTxn): Unit
