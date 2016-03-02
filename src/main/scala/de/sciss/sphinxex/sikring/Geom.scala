@@ -13,5 +13,8 @@
 
 package de.sciss.sphinxex.sikring
 
+object DoublePoint2D {
+  final val Zero = DoublePoint2D(0, 0)
+}
 final case class DoublePoint2D    (x: Double, y: Double)
 final case class DoubleRectangle2D(x: Double, y: Double, width: Double, height: Double)

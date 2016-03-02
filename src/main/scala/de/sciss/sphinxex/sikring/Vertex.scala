@@ -30,11 +30,14 @@ trait Vertex {
 
   def tick(time: Int)(implicit tx: InTxn): Unit
 
+  /** Shape _not_ offset by `position`. */
   def shape(implicit tx: InTxn): Shape
 
+  /** Bounds _not_ offset by `position`. */
   def bounds(implicit tx: InTxn): DoubleRectangle2D
 
-  def move(dx: Double, dy: Double)(implicit tx: InTxn): Unit
+  def position                    (implicit tx: InTxn): DoublePoint2D
+  def position_=(p: DoublePoint2D)(implicit tx: InTxn): Unit
 
   def weight(implicit tx: InTxn): Double
 }
