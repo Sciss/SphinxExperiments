@@ -113,7 +113,7 @@ object Renderer {
 
     // println(alignedS.mkString("\n"))
 
-    val PhasePeriod = 4 * 25
+    // val PhasePeriod = 4 * 25
 
     atomic { implicit tx =>
       (alignedAll zip alignedAllS).zipWithIndex.foreach { case ((aligned, alignedS), lineIdx) =>
@@ -129,6 +129,8 @@ object Renderer {
       val numColumns  = columns.size
 
       val yPos      = lineIdx * 84 + 64
+
+      val PhasePeriod = (4 * 25 * math.sqrt(columns.size.toDouble / 8)).toInt
 
       val vertices = (columns zip columnsS).zipWithIndex.map { case ((columnShapes, columnNames), columnIdx) =>
         val seq     = columnNames zip columnShapes

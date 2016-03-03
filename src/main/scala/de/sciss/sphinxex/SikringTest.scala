@@ -25,20 +25,69 @@ import scala.swing.{BorderPanel, Button, CheckBox, Component, Dimension, FlowPan
 
 object SikringTest extends SimpleSwingApplication {
   lazy val top: Frame = {
+    println("Hello...")
     val phrases = Vec(
-      Vec(
-        // 01234567890123
-        "DIE JUWELEN ES",
-        "DIE VIREN ES",
-        "JUWELEN ES",
-        "THEORIEN ES"
-      ),
-      Vec(
-        "ÜBERLEGT OB ICH ZU GEBEN",
-        "ÜBERLEGT OB ER ZU GEBEN",
-        "GEWÜRDIGT ZU GEBEN",
-        "ÜBERLEGT UND ZU GEBEN"
-      ),
+//      Vec(
+//        // 01234567890123
+//        "DIE JUWELEN ES",
+//        "DIE VIREN ES",
+//        "JUWELEN ES",
+//        "THEORIEN ES"
+//      ),
+//      Vec(
+//        "ÜBERLEGT OB ICH ZU GEBEN",
+//        "ÜBERLEGT OB ER ZU GEBEN",
+//        "GEWÜRDIGT ZU GEBEN",
+//        "ÜBERLEGT UND ZU GEBEN"
+//      ),
+    Vec(
+      "EMPÖRTE KANN SOWOHL AUS WAR NICHT MEHR DA",
+      "EMPÖRTE KANN SOFORT NUTZBAR NICHT MEHR DA",
+      "EMPÖRTE KANN SOWOHL PLUS WAR NICHT MEHR DA"
+      // "EMPÖRTE KANN SOFORT NUTZBAR MÜNCHNER DA"
+    ),
+    Vec(
+      "BORN"
+    ),
+    Vec(
+      "DER RICHTER SICH EIN AMT ESEL",
+      "DADURCH DASS SIE EIN AMT ESEL",
+      "DADURCH PLÖTZLICH EIN AMT ESEL",
+      "DADURCH DASS SICH EIN AMT ESEL"
+    ),
+    Vec(
+      "BRAUCHT"
+    ),
+    Vec(
+      "EINE FURCHT"
+    ),
+    Vec(
+      "SIE MAL",
+      "GEH MAL",
+      "WENN MAL",
+      "MAL"
+    ),
+    Vec(
+        "WIEDER NEUE",
+        "WIE DER NEUE",
+        "WEDER NEUE",
+        "B DER NEUE"
+    ),
+    Vec(
+        "ENORM ALTER ZU",
+        "WENN EIN ALTER ZU",
+        "IM ALTER ZU",
+        "EIN ALTER ZU"
+    ),
+    Vec(
+        "FOLGE VON HÄUSERN",
+        "VOR VON HÄUSERN",
+        "FOLGEN VON HÄUSERN",
+        "VORWURF VON HÄUSERN"
+    ),
+    Vec(
+        "RUFEN"
+    ),
       Vec(
         "GEH SONST EBEN DIESES",
         "LIEß UNS EBEN DIESES",
@@ -62,16 +111,17 @@ object SikringTest extends SimpleSwingApplication {
         "OB EIN",
         "VOR EIN",
         "FRAU EIN"
-      ),
-      Vec(
-        "BEI MÜNCHEN IST HAT",
-        "WIE BEI MÜNCHEN IST HAT",
-        "ÜBER MÖGLICHE WÄCHST HAT",
-        "ÜBER MÜNCHEN IST HAT"
+//      ),
+//      Vec(
+//        "BEI MÜNCHEN IST HAT",
+//        "WIE BEI MÜNCHEN IST HAT",
+//        "ÜBER MÖGLICHE WÄCHST HAT",
+//        "ÜBER MÜNCHEN IST HAT"
       )
     )
 
     val graph = Renderer(phrases)
+    atomic { implicit tx => graph.zoom = 0.7 }
 
     val comp  = new Component {
       background    = Color.black
