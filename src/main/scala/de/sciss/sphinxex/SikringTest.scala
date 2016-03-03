@@ -13,15 +13,12 @@
 
 package de.sciss.sphinxex
 
-import java.awt.image.BufferedImage
-import java.awt.{Color, RenderingHints, Shape}
+import java.awt.{Color, RenderingHints}
 import javax.swing.{SpinnerNumberModel, Timer}
 
-import de.sciss.kollflitz
-import de.sciss.sphinxex.sikring.{DoublePoint2D, Edge, Force, Graph, Vertex}
+import de.sciss.sphinxex.sikring.Renderer
 import de.sciss.swingplus.Spinner
 
-import scala.collection.breakOut
 import scala.concurrent.stm.atomic
 import scala.swing.event.{ButtonClicked, ValueChanged}
 import scala.swing.{BorderPanel, Button, CheckBox, Component, Dimension, FlowPanel, Frame, Graphics2D, Label, MainFrame, SimpleSwingApplication, Swing}
@@ -29,76 +26,57 @@ import scala.swing.{BorderPanel, Button, CheckBox, Component, Dimension, FlowPan
 object SikringTest extends SimpleSwingApplication {
   lazy val top: Frame = {
     val phrases = Vec(
-      // 01234567890123
-      "DIE JUWELEN ES",
-      "DIE VIREN ES",
-      "JUWELEN ES",
-      "THEORIEN ES", "")
+      Vec(
+        // 01234567890123
+        "DIE JUWELEN ES",
+        "DIE VIREN ES",
+        "JUWELEN ES",
+        "THEORIEN ES"
+      ),
+      Vec(
+        "ÜBERLEGT OB ICH ZU GEBEN",
+        "ÜBERLEGT OB ER ZU GEBEN",
+        "GEWÜRDIGT ZU GEBEN",
+        "ÜBERLEGT UND ZU GEBEN"
+      ),
+      Vec(
+        "GEH SONST EBEN DIESES",
+        "LIEß UNS EBEN DIESES",
+        "WIE SONST EBEN DIESES",
+        "DIE SONST EBEN DIESES "
+      ),
+      Vec(
+        "SCHLICHT WILDEN AUF DER RECHTEN",
+        "SCHLICHT BILDEN AUF DER RECHTEN",
+        "SCHLICH BILDEN AUF DER RECHTEN",
+        "SCHICHT BILDEN AUF DER RECHTEN"
+      ),
+      Vec(
+        "ABER EIN",
+        "WER EIN",
+        "EIN",
+        "ÜBER EIN"
+      ),
+      Vec(
+        "AUCH EIN",
+        "OB EIN",
+        "VOR EIN",
+        "FRAU EIN"
+      ),
+      Vec(
+        "BEI MÜNCHEN IST HAT",
+        "WIE BEI MÜNCHEN IST HAT",
+        "ÜBER MÖGLICHE WÄCHST HAT",
+        "ÜBER MÜNCHEN IST HAT"
+      )
+    )
 
-//    val phrases = Vec(
-//      "ÜBERLEGT OB ICH ZU GEBEN",
-//      "ÜBERLEGT OB ER ZU GEBEN",
-//      "GEWÜRDIGT ZU GEBEN",
-//      "ÜBERLEGT UND ZU GEBEN")
+    val graph = Renderer(phrases)
 
-    //    val phrases = Vec(
-//    // 01234567890123
-//      "DIE_JUWELEN_ES",
-//      "DIE_VIREN_ES",
-//      "JUWELEN_ES",
-//      "THEORIEN_ES")
-
-//    val phrases = Vec("D", "")
-
-//    val phrases = Vec("DAS", "DS")
-
-    /*
-        ---- edge forces ----
-
-        say we delete a character:
-
-        "BAR"
-        "B*R"
-
-        thus we need edges (B, A), (A, R) and (B, R)
-
-        let's look at a more complex example:
-
-        "f**rom**"
-        "c*hrome*"
-        "c*as**e*"
-        "plac**e*"
-        "i**c**e*"
-        "i**nn*er"
-
-        - each column is a vertex
-        - thus we can connect each pair of adjacent columns
-        - we look from each column to all its right neighbours
-        - if a neighbour column contains a '*' in any row
-          for which the current column does not contain a '*'
-          in that same row, and the n-th neighbour column
-          does not contain a '*' in that row, we add another
-          edge, where n = 2 to width
-
-        // note -- we could abort as soon as `b` is false.
-        // if we start with n = 2, we automatically include all adjacent vertices
-        for (n <- 3 to (numCols - colIdx)) {
-          val b = (0 until numRows).exists { rowIdx =>
-            val sel = columns.slice(colIdx, colIdx + n)
-            val sub = sel.map(_.apply(rowIdx)).mkString
-            sub.head.isDefined && sub.last.isDefined &&
-              sub.init.tail.forall(_.isEmpty)
-          }
-          if (b) addEdge
-        }
-     */
-
-    val graph = Graph()
-    val font  = MyFont(64)
     val comp  = new Component {
       background    = Color.black
       foreground    = Color.white
-      preferredSize = new Dimension(800, 84)
+      preferredSize = new Dimension(1024, 84 * phrases.size)
       opaque        = true
 
       override protected def paintComponent(g: Graphics2D): Unit = {
@@ -109,96 +87,6 @@ object SikringTest extends SimpleSwingApplication {
         g.setRenderingHint(RenderingHints.KEY_STROKE_CONTROL, RenderingHints.VALUE_STROKE_PURE )
         atomic { implicit tx =>
           graph.render(g)
-        }
-      }
-    }
-    val tmpImg  = new BufferedImage(16, 16, BufferedImage.TYPE_INT_ARGB)
-    val tmpG    = tmpImg.createGraphics()
-    val fm      = tmpG.getFontMetrics(font)
-    val frc     = fm.getFontRenderContext
-
-    import kollflitz.Ops._
-
-    val charSet   : Set[Char]         = phrases.flatMap(x => x: Vec[Char])(breakOut)
-    val charShapes: Map[Char, Shape]  = charSet.map { c =>
-      val gv    = font.createGlyphVector(frc, c.toString)
-      val shape = gv.getOutline
-      c -> shape
-    } (breakOut)
-
-    val charPairs: Set[(Char, Char)]  = phrases.flatMap { ph =>
-      (ph: Vec[Char]).mapPairs((a, b) => (a, b))(breakOut): Set[(Char, Char)]
-    } (breakOut)
-
-    val charPairSpacing: Map[(Char, Char), Double] = charPairs.map { case pair @ (a, b) =>
-      val gv    = font.createGlyphVector(frc, s"$a$b")
-//      val shpA    = gv.getGlyphOutline(0)
-//      val shpB    = gv.getGlyphOutline(1)
-//      val rA      = shpA.getBounds2D
-//      val rB      = shpB.getBounds2D
-//      val dist    = rB.getCenterX - rA.getCenterX
-      val pA    = gv.getGlyphPosition(0)
-      val pB    = gv.getGlyphPosition(1)
-      val dist  = pB.getX - pA.getX
-      pair -> dist
-    } (breakOut)
-
-    tmpG.dispose()
-
-    val phraseShapes: Vec[Vec[(Char, Shape)]] = phrases.map { phrase =>
-      phrase.map(c => (c, charShapes(c)))
-    }
-
-    val aligned   = EditTranscript.alignWith(phraseShapes, fill = Vertex.EmptyShape)
-    val alignedS  = EditTranscript.align    (phrases     , fill = '*')
-
-    println(alignedS.mkString("\n"))
-
-    val PhasePeriod = 4 * 25
-
-    atomic { implicit tx =>
-      // create vertices
-      val columns     = aligned .transpose
-      val columnsS    = alignedS.transpose
-      val numRows     = aligned.size
-      val numColumns  = columns.size
-
-      val vertices = (columns zip columnsS).zipWithIndex.map { case ((columnShapes, columnNames), columnIdx) =>
-        val seq     = columnNames zip columnShapes
-        val v       = Vertex(columnIdx.toString, startTime = 0, phasePeriod = PhasePeriod, seq = seq)
-        v.position  = DoublePoint2D(x = columnIdx * 48 + 8, y = 64)
-        graph.addVertex(v)
-        v
-      }
-
-      // create edges
-      for (colIdx <- 0 until (numColumns - 1)) {
-        for (n <- 2 /* 3 */ to (numColumns - colIdx)) {
-          val b = (0 until numRows).exists { rowIdx =>
-            val sel = columns.slice(colIdx, colIdx + n)
-            val sub = sel.map(_.apply(rowIdx)) // .mkString
-            val res = sub.head.isDefined && sub.last.isDefined && sub.init.tail.forall(_.isEmpty)
-            // if (res) println(sub.mkString)
-            res
-          }
-          if (b) {
-            val sourceIdx = colIdx
-            val sinkIdx   = colIdx + n - 1
-            val sourceV   = vertices(sourceIdx)
-            val sinkV     = vertices(sinkIdx)
-            val spacing   = (aligned zip alignedS).map { case (sub, row) =>
-              val active  = sub(sourceIdx).isDefined && sub(sinkIdx).isDefined &&
-                sub.slice(sourceIdx + 1, sinkIdx).forall(_.isEmpty)
-              if (!active) 0.0 else {
-                val pair = (row(sourceIdx), row(sinkIdx))
-                charPairSpacing(pair) // .getOrElse(pair, 0.0)
-              }
-            }
-            println(s"$colIdx > ${colIdx + n - 1} : ${spacing.mkString(", ")}")
-            val force     = Force.HTorque(startTime = 0, phasePeriod = PhasePeriod, seq = spacing)
-            val e         = Edge(sourceV, sinkV, force = force)
-            graph.addEdge(e)
-          }
         }
       }
     }
