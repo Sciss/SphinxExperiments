@@ -28,15 +28,15 @@ import scala.swing.{Swing, Label, CheckBox, BorderPanel, FlowPanel, Button, Dime
 
 object SikringTest extends SimpleSwingApplication {
   lazy val top: Frame = {
-//    val phrases = Vec(
-//      "DIE JUWELEN ES",
-//      "DIE VIREN ES",
-//      "JUWELEN ES",
-//      "THEORIEN ES")
+    val phrases = Vec(
+      "DIE JUWELEN ES",
+      "DIE VIREN ES",
+      "JUWELEN ES",
+      "THEORIEN ES")
 
 //    val phrases = Vec("D", "")
 
-    val phrases = Vec("DAS", "DS")
+//    val phrases = Vec("DAS", "DS")
 
     /*
         ---- edge forces ----
@@ -161,15 +161,19 @@ object SikringTest extends SimpleSwingApplication {
             res
           }
           if (b) {
-            // println(s"$colIdx > ${colIdx + n - 1}")
             val sourceIdx = colIdx
             val sinkIdx   = colIdx + n - 1
             val sourceV   = vertices(sourceIdx)
             val sinkV     = vertices(sinkIdx)
-            val spacing   = alignedS.map { row =>
-              val pair = (row(sourceIdx), row(sinkIdx))
-              charPairSpacing.getOrElse(pair, 0.0)
+            val spacing   = (aligned zip alignedS).map { case (sub, row) =>
+              val active  = sub(sourceIdx).isDefined && sub(sinkIdx).isDefined &&
+                sub.slice(sourceIdx + 1, sinkIdx).forall(_.isEmpty)
+              if (!active) 0.0 else {
+                val pair = (row(sourceIdx), row(sinkIdx))
+                charPairSpacing(pair) // .getOrElse(pair, 0.0)
+              }
             }
+            println(s"$colIdx > ${colIdx + n - 1} : ${spacing.mkString(", ")}")
             val force     = Force.HTorque(startTime = 0, phasePeriod = PhasePeriod, seq = spacing)
             val e         = Edge(sourceV, sinkV, force = force)
             graph.addEdge(e)
