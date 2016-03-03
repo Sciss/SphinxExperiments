@@ -158,12 +158,14 @@ object SikringTest extends SimpleSwingApplication {
 
     atomic { implicit tx =>
       // create vertices
-      val columns     = aligned.transpose
+      val columns     = aligned .transpose
+      val columnsS    = alignedS.transpose
       val numRows     = aligned.size
       val numColumns  = columns.size
 
-      val vertices = columns.zipWithIndex.map { case (columnShapes, columnIdx) =>
-        val v       = Vertex(columnIdx.toString, startTime = 0, phasePeriod = PhasePeriod, seq = columnShapes)
+      val vertices = (columns zip columnsS).zipWithIndex.map { case ((columnShapes, columnNames), columnIdx) =>
+        val seq     = columnNames zip columnShapes
+        val v       = Vertex(columnIdx.toString, startTime = 0, phasePeriod = PhasePeriod, seq = seq)
         v.position  = DoublePoint2D(x = columnIdx * 48 + 8, y = 64)
         graph.addVertex(v)
         v

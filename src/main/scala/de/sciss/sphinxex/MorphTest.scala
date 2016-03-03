@@ -20,6 +20,7 @@ import javax.swing.{SpinnerNumberModel, Timer}
 import de.sciss.kollflitz
 import de.sciss.numbers
 import de.sciss.shapeint.ShapeInterpolator
+import de.sciss.sphinxex.sikring.Vertex
 import de.sciss.swingplus.Spinner
 
 import scala.swing.Swing._
@@ -28,25 +29,6 @@ import scala.swing.{Button, BorderPanel, BoxPanel, CheckBox, Component, Frame, G
 
 object MorphTest extends SwingApplication {
   private final val PiH = (math.Pi/2).toFloat
-
-  sealed trait PathCmd {
-    def addTo(p: Path2D): Unit
-  }
-  final case class PathMove(x: Double, y: Double) extends PathCmd {
-    def addTo(p: Path2D): Unit = p.moveTo(x, y)
-  }
-  final case class PathLine(x: Double, y: Double) extends PathCmd {
-    def addTo(p: Path2D): Unit = p.lineTo(x, y)
-  }
-  final case class PathQuad(x1: Double, y1: Double, x2: Double, y2: Double) extends PathCmd {
-    def addTo(p: Path2D): Unit = p.quadTo(x1, y1, x2, y2)
-  }
-  final case class PathCube(x1: Double, y1: Double, x2: Double, y2: Double, x3: Double, y3: Double) extends PathCmd {
-    def addTo(p: Path2D): Unit = p.curveTo(x1, y1, x2, y2, x3, y3)
-  }
-  case object PathClose extends PathCmd {
-    def addTo(p: Path2D): Unit = p.closePath()
-  }
 
   def startup(args: Array[String]): Unit = {
     var timer     = Option.empty[Timer]
@@ -177,66 +159,10 @@ object MorphTest extends SwingApplication {
             val shpA0 = vecA.getGlyphOutline(aIdx)
             val shpB0 = vecB.getGlyphOutline(bIdx)
 
-            def shiftShape(name: String, shp: Shape, shift: Int): Shape = {
-              val it  = shp.getPathIterator(null)
-              val vb  = Vector.newBuilder[PathCmd]
-              val c   = new Array[Double](6)
-              // first create a collection of commands
-              while (!it.isDone) {
-                import PathIterator._
-                val cmd = it.currentSegment(c) match {
-                  case SEG_MOVETO  => PathMove(c(0), c(1))
-                  case SEG_LINETO  => PathLine(c(0), c(1))
-                  case SEG_QUADTO  => PathQuad(c(0), c(1), c(2), c(3))
-                  case SEG_CUBICTO => PathCube(c(0), c(1), c(2), c(3), c(4), c(5))
-                  case SEG_CLOSE   => PathClose
-                }
-                vb += cmd
-                it.next()
-              }
-              val v = vb.result()
-
-              import kollflitz.Ops._
-              val itGroup = v.groupWith {
-                case (PathClose, PathMove(_, _)) => false
-                case _ => true
-              }
-              val head = itGroup.next()
-
-              val segm = head.groupWith {
-                case (_, PathLine(_, _)) => false
-                case _ => true
-              } .toIndexedSeq
-
-              // println("----SEGM----")
-              // segm.foreach(println)
-
-              if (shift >= segm.size) println(s"WARNING: $name segm.size = ${segm.size}")
-
-              val iShift1 = shift % segm.size
-              val res     = if (iShift1 == 0) shp else {
-                val (pre, suf)  = segm.splitAt(iShift1)
-                val (PathMove(x0, y0) +: preTail) = pre.flatten
-                val (PathLine(x1, y1) +: sufInner :+ PathClose) = suf.flatten
-                val p = new Path2D.Float()
-                p.moveTo(x1, y1)
-                sufInner.foreach(_.addTo(p))
-                p.lineTo(x0, y0)
-                preTail.foreach(_.addTo(p))
-                p.closePath()
-                itGroup.foreach { commands =>
-                  commands.foreach(_.addTo(p))
-                }
-                p
-              }
-
-              res
-            }
-
             val iShiftA = mShiftA.getNumber.intValue()
             val iShiftB = mShiftB.getNumber.intValue()
-            val shpA    = if (iShiftA == 0) shpA0 else shiftShape("A", shpA0, iShiftA)
-            val shpB    = if (iShiftB == 0) shpB0 else shiftShape("B", shpB0, iShiftB)
+            val shpA    = if (iShiftA == 0) shpA0 else Vertex.shiftShape("A", shpA0, iShiftA)
+            val shpB    = if (iShiftB == 0) shpB0 else Vertex.shiftShape("B", shpB0, iShiftB)
 
             val shp   = shpMorph.evaluate(shpA, shpB, f, true)
             g.fill(shp)

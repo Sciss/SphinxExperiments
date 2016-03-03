@@ -25,8 +25,10 @@ import scala.concurrent.stm.InTxn
 object Vertex {
   final val EmptyShape: Shape = new Path2D.Float
 
-  def apply(label: String, startTime: Int, phasePeriod: Int, seq: Vec[Shape]): Vertex =
+  def apply(label: String, startTime: Int, phasePeriod: Int, seq: Vec[(Char, Shape)]): Vertex =
     new VertexImpl(label = label, startTime = startTime, phasePeriod = phasePeriod, seq = seq)
+
+  def shiftShape(name: String, shp: Shape, shift: Int): Shape = VertexImpl.shiftShape(name, shp, shift)
 }
 trait Vertex {
   def label: String
