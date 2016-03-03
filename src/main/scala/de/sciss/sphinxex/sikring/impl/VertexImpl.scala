@@ -61,9 +61,10 @@ object VertexImpl {
         (ab(0), ab(1)) -> ((n1.intValue(), n2.intValue()))
     } (breakOut)
 
-    map.iterator.foreach { case ((a, b), x) =>
-      val rev = (b, a)
-      map += rev -> x
+    map.iterator.foreach { case ((a, b), (x, y)) =>
+      val revKey = (b, a)
+      val revVal = (y, x)
+      map += revKey -> revVal
     }
 
     // println(map)
