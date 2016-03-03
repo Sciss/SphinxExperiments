@@ -182,8 +182,13 @@ object SikringTest extends SimpleSwingApplication {
       }
     }
 
+    val ggAdvance = new CheckBox("Advance") {
+      selected = true
+    }
+
     def tickAction(): Unit = {
-      atomic { implicit tx => graph.tick() }
+      val advance = ggAdvance.selected
+      atomic { implicit tx => graph.tick(advance = advance) }
       comp.repaint()
     }
 
@@ -209,7 +214,7 @@ object SikringTest extends SimpleSwingApplication {
       }
     }
 
-    val pBut  = new FlowPanel(ggTick, new Label("fps:"), ggFPS, ggAnim)
+    val pBut  = new FlowPanel(ggTick, ggAdvance, new Label("fps:"), ggFPS, ggAnim)
 
     new MainFrame {
       title     = "Sikring Test"

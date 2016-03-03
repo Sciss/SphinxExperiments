@@ -29,7 +29,7 @@ trait Graph {
   def addEdge     (e: Edge  )(implicit tx: InTxn): Unit
   def removeEdge  (e: Edge  )(implicit tx: InTxn): Unit
 
-  def tick()(implicit tx: InTxn): Unit
+  def tick(advance: Boolean = true)(implicit tx: InTxn): Unit
 
   def pan                        (implicit tx: InTxn): DoublePoint2D
   def pan_=(value: DoublePoint2D)(implicit tx: InTxn): Unit

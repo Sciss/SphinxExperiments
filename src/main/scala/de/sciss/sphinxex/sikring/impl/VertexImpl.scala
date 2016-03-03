@@ -18,6 +18,7 @@ package impl
 import java.awt.Shape
 import java.awt.geom.AffineTransform
 
+import de.sciss.numbers
 import de.sciss.shapeint.ShapeInterpolator
 
 import scala.collection.immutable.{IndexedSeq => Vec}
@@ -40,7 +41,11 @@ final class VertexImpl(val label: String, startTime: Int, phasePeriod: Int, seq:
   def tick(time: Int)(implicit tx: InTxn): Unit = {
     val dt      = time - startTime
     val step    = (dt / phasePeriod) % seq.size
-    val phase   = (dt % phasePeriod).toDouble / phasePeriod
+    // val phase   = (dt % phasePeriod).toDouble / phasePeriod
+    val phase0  = (dt % phasePeriod).toDouble / phasePeriod
+    val PiH     = math.Pi/2
+    import numbers.Implicits._
+    val phase   = phase0.linlin(0, 1, -PiH, PiH).sin.linlin(-1, 1, 0, 1)
     val w0      = if (seq (step)                 .isEmpty) 0.0 else 1.0
     val w1      = if (seq((step + 1) % seq.size) .isEmpty) 0.0 else 1.0
     val weight  = w0 * (1 - phase) + w1 * phase

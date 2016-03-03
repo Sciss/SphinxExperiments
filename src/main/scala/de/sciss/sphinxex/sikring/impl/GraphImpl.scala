@@ -59,8 +59,8 @@ final class GraphImpl extends Graph {
       if (sinkMap  .isEmpty) edgeMap.remove(e.sink  ) else edgeMap.put(e.sink  , sinkMap  )
     }
 
-  def tick()(implicit tx: InTxn): Unit = {
-    val time = timeRef.transformAndGet(_ + 1)
+  def tick(advance: Boolean)(implicit tx: InTxn): Unit = {
+    val time = if (advance) timeRef.transformAndGet(_ + 1) else timeRef()
     vertices.foreach(_.tick(time))
 
     final class Acc(var x: Double = 0.0, var y: Double = 0.0) {
