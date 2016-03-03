@@ -14,7 +14,7 @@
 package de.sciss.sphinxex
 
 import java.awt.geom.{Path2D, PathIterator, AffineTransform}
-import java.awt.{Color, RenderingHints}
+import java.awt.{Shape, Color, RenderingHints}
 import javax.swing.{SpinnerNumberModel, Timer}
 
 import de.sciss.kollflitz
@@ -24,7 +24,7 @@ import de.sciss.swingplus.Spinner
 
 import scala.swing.Swing._
 import scala.swing.event.{ButtonClicked, EditDone, ValueChanged}
-import scala.swing.{BorderPanel, BoxPanel, CheckBox, Component, Frame, Graphics2D, Orientation, Slider, SwingApplication, TextField}
+import scala.swing.{Button, BorderPanel, BoxPanel, CheckBox, Component, Frame, Graphics2D, Orientation, Slider, SwingApplication, TextField}
 
 object MorphTest extends SwingApplication {
   private final val PiH = (math.Pi/2).toFloat
@@ -67,12 +67,30 @@ object MorphTest extends SwingApplication {
         case ValueChanged(_) => ggShape.repaint()
       }
     }
-    lazy val mShift   = new SpinnerNumberModel(0, 0, 32, 1)
-    lazy val ggShift  = new Spinner(mShift) {
+    lazy val mShiftA   = new SpinnerNumberModel(0, 0, 32, 1)
+    lazy val ggShiftA  = new Spinner(mShiftA) {
       listenTo(this)
       reactions += {
         case ValueChanged(_) => ggShape.repaint()
       }
+    }
+    lazy val mShiftB   = new SpinnerNumberModel(0, 0, 32, 1)
+    lazy val ggShiftB  = new Spinner(mShiftB) {
+      listenTo(this)
+      reactions += {
+        case ValueChanged(_) => ggShape.repaint()
+      }
+    }
+    lazy val ggResetShift = Button("Reset") {
+      mShiftA.setValue(0)
+      mShiftB.setValue(0)
+    }
+    lazy val ggPostShift = Button("Post") {
+      val a   = ggTextA.text.head
+      val b   = ggTextB.text.head
+      val sa  = mShiftA.getNumber.intValue()
+      val sb  = mShiftB.getNumber.intValue()
+      println(s""""$a$b": [$sa, $sb],""") // json style
     }
 
     import numbers.Implicits._
@@ -157,11 +175,10 @@ object MorphTest extends SwingApplication {
             // Note: treat S(' ', _) as I and treat S(_, ' ') as D
           } else if (edit == Substitute && txtA.charAt(aIdx) != ' ' && txtB.charAt(bIdx) != ' ') {
             val shpA0 = vecA.getGlyphOutline(aIdx)
-            val shpB  = vecB.getGlyphOutline(bIdx)
+            val shpB0 = vecB.getGlyphOutline(bIdx)
 
-            val iShift = mShift.getNumber.intValue()
-            val shpA  = if (iShift == 0) shpA0 else {
-              val it  = shpA0.getPathIterator(null)
+            def shiftShape(name: String, shp: Shape, shift: Int): Shape = {
+              val it  = shp.getPathIterator(null)
               val vb  = Vector.newBuilder[PathCmd]
               val c   = new Array[Double](6)
               // first create a collection of commands
@@ -194,8 +211,10 @@ object MorphTest extends SwingApplication {
               // println("----SEGM----")
               // segm.foreach(println)
 
-              val iShift1 = iShift % segm.size
-              val res     = if (iShift1 == 0) shpA0 else {
+              if (shift >= segm.size) println(s"WARNING: $name segm.size = ${segm.size}")
+
+              val iShift1 = shift % segm.size
+              val res     = if (iShift1 == 0) shp else {
                 val (pre, suf)  = segm.splitAt(iShift1)
                 val (PathMove(x0, y0) +: preTail) = pre.flatten
                 val (PathLine(x1, y1) +: sufInner :+ PathClose) = suf.flatten
@@ -213,6 +232,11 @@ object MorphTest extends SwingApplication {
 
               res
             }
+
+            val iShiftA = mShiftA.getNumber.intValue()
+            val iShiftB = mShiftB.getNumber.intValue()
+            val shpA    = if (iShiftA == 0) shpA0 else shiftShape("A", shpA0, iShiftA)
+            val shpB    = if (iShiftB == 0) shpB0 else shiftShape("B", shpB0, iShiftB)
 
             val shp   = shpMorph.evaluate(shpA, shpB, f, true)
             g.fill(shp)
@@ -257,7 +281,10 @@ object MorphTest extends SwingApplication {
       contents += ggTextA
       contents += ggTextB
       contents += ggSlider
-      contents += ggShift
+      contents += ggShiftA
+      contents += ggShiftB
+      contents += ggResetShift
+      contents += ggPostShift
       contents += ggTimer
     }
 

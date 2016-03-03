@@ -131,7 +131,7 @@ object SikringTest extends SimpleSwingApplication {
     } (breakOut)
 
     val charPairSpacing: Map[(Char, Char), Double] = charPairs.map { case pair @ (a, b) =>
-      val gv      = font.createGlyphVector(frc, s"$a$b")
+      val gv    = font.createGlyphVector(frc, s"$a$b")
 //      val shpA    = gv.getGlyphOutline(0)
 //      val shpB    = gv.getGlyphOutline(1)
 //      val rA      = shpA.getBounds2D
