@@ -56,10 +56,18 @@ object VertexImpl {
     is.read(arr)
     is.close()
     val JsObject(fields) = PlayJson.parse(arr)
-    val map: Map[(Char, Char), (Int, Int)] = fields.map {
+    var map: Map[(Char, Char), (Int, Int)] = fields.map {
       case (ab, JsArray(Seq(JsNumber(n1), JsNumber(n2), _ @ _*))) =>
         (ab(0), ab(1)) -> ((n1.intValue(), n2.intValue()))
     } (breakOut)
+
+    map.iterator.foreach { case ((a, b), x) =>
+      val rev = (b, a)
+      map += rev -> x
+    }
+
+    // println(map)
+
     map.withDefaultValue((0, 0))
   }
 
@@ -184,6 +192,8 @@ final class VertexImpl(val label: String, startTime: Int, phasePeriod: Int, seq:
           val phase = phaseRef().toFloat
           if (phase == 0f) shpA else if (phase == 1f) shpB else {
             val (shiftA, shiftB) = morphPairs((charA, charB))
+            // if (shiftA != 0 || shiftB != 0) println(s"($charA, $charB) -> ($shiftA, $shiftB)")
+            // else if (!morphPairs.contains((charA, charB))) println(s"NOT: ($charA, $charB)")
             val shpAS = if (shiftA == 0) shpA else Vertex.shiftShape("A", shpA, shiftA)
             val shpBS = if (shiftB == 0) shpB else Vertex.shiftShape("B", shpB, shiftB)
             ShapeInterpolator.apply(shpAS, shpBS, phase, true)
