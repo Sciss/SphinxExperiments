@@ -15,6 +15,8 @@ package de.sciss.sphinxex
 package sikring
 package impl
 
+import de.sciss.numbers
+
 import scala.concurrent.stm.InTxn
 
 object HTorqueImpl {
@@ -34,20 +36,24 @@ final class HTorqueImpl(startTime: Int, phasePeriod: Int, seq: Vec[Double])
 
     val dt      = time - startTime
     val step    = (dt / phasePeriod) % seq.size
-    val phase   = (dt % phasePeriod).toDouble / phasePeriod
+    val phase0  = (dt % phasePeriod).toDouble / phasePeriod
+    import numbers.Implicits._
+    val PiH     = math.Pi/2
+    val phase   = phase0.linlin(0, 1, -PiH, PiH).sin.linlin(-1, 1, 0, 1)
     val w0      = seq (step)
     val w1      = seq((step + 1) % seq.size)
-//    val targetH = if (w0 == 0) w1 else if (w1 == 0) w0 else w0 * (1 - phase) + w1 * phase
-//    if (targetH == 0) return NoForce
-    if (w0 == 0) return NoForce
-    val targetH = w0 + 16
+    val targetH0 = if (w0 == 0) w1 else if (w1 == 0) w0 else w0 * (1 - phase) + w1 * phase
+    if (targetH0 == 0) return NoForce
+    // if (w0 == 0) return NoForce
+    // val targetH = w0 + 16
+    val targetH = targetH0 + 16
 
     // val currH   = (rB.cx + pB.x) - (rA.cx + pA.x)
     val currH   = pB.x - pA.x
     // F = m * a
     // F = -k * x
     val diffH   = targetH - currH
-    val weight  = 1.0 // source.weight * sink.weight
+    val weight  = if (w0 == 0) phase else if (w1 == 0) 1 - phase else 1.0
     val dx      = diffH * weight * 0.2 // 0.1
     val dy      = 0.0   // XXX TODO
     val dxA     = -dx/2

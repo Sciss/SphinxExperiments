@@ -14,28 +14,34 @@
 package de.sciss.sphinxex
 
 import java.awt.image.BufferedImage
-import java.awt.{RenderingHints, Color, Shape}
-import javax.swing.{Timer, SpinnerNumberModel}
+import java.awt.{Color, RenderingHints, Shape}
+import javax.swing.{SpinnerNumberModel, Timer}
 
 import de.sciss.kollflitz
-import de.sciss.sphinxex.sikring.{Force, Edge, DoublePoint2D, Graph, Vertex}
+import de.sciss.sphinxex.sikring.{DoublePoint2D, Edge, Force, Graph, Vertex}
 import de.sciss.swingplus.Spinner
 
 import scala.collection.breakOut
 import scala.concurrent.stm.atomic
 import scala.swing.event.{ButtonClicked, ValueChanged}
-import scala.swing.{Swing, Label, CheckBox, BorderPanel, FlowPanel, Button, Dimension, MainFrame, Graphics2D, Component, Frame, SimpleSwingApplication}
+import scala.swing.{BorderPanel, Button, CheckBox, Component, Dimension, FlowPanel, Frame, Graphics2D, Label, MainFrame, SimpleSwingApplication, Swing}
 
 object SikringTest extends SimpleSwingApplication {
   lazy val top: Frame = {
-    val phrases = Vec(
-      // 01234567890123
-      "DIE JUWELEN ES",
-      "DIE VIREN ES",
-      "JUWELEN ES",
-      "THEORIEN ES", "")
-
 //    val phrases = Vec(
+//      // 01234567890123
+//      "DIE JUWELEN ES",
+//      "DIE VIREN ES",
+//      "JUWELEN ES",
+//      "THEORIEN ES", "")
+
+    val phrases = Vec(
+      "ÜBERLEGT OB ICH ZU GEBEN",
+      "ÜBERLEGT OB ER ZU GEBEN",
+      "GEWÜRDIGT ZU GEBEN",
+      "ÜBERLEGT UND ZU GEBEN")
+
+    //    val phrases = Vec(
 //    // 01234567890123
 //      "DIE_JUWELEN_ES",
 //      "DIE_VIREN_ES",
