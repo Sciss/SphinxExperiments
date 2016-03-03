@@ -29,10 +29,18 @@ import scala.swing.{Swing, Label, CheckBox, BorderPanel, FlowPanel, Button, Dime
 object SikringTest extends SimpleSwingApplication {
   lazy val top: Frame = {
     val phrases = Vec(
+      // 01234567890123
       "DIE JUWELEN ES",
       "DIE VIREN ES",
       "JUWELEN ES",
-      "THEORIEN ES")
+      "THEORIEN ES", "")
+
+//    val phrases = Vec(
+//    // 01234567890123
+//      "DIE_JUWELEN_ES",
+//      "DIE_VIREN_ES",
+//      "JUWELEN_ES",
+//      "THEORIEN_ES")
 
 //    val phrases = Vec("D", "")
 
@@ -118,11 +126,14 @@ object SikringTest extends SimpleSwingApplication {
 
     val charPairSpacing: Map[(Char, Char), Double] = charPairs.map { case pair @ (a, b) =>
       val gv      = font.createGlyphVector(frc, s"$a$b")
-      val shpA    = gv.getGlyphOutline(0)
-      val shpB    = gv.getGlyphOutline(1)
-      val rA      = shpA.getBounds2D
-      val rB      = shpB.getBounds2D
-      val dist    = rB.getCenterX - rA.getCenterX
+//      val shpA    = gv.getGlyphOutline(0)
+//      val shpB    = gv.getGlyphOutline(1)
+//      val rA      = shpA.getBounds2D
+//      val rB      = shpB.getBounds2D
+//      val dist    = rB.getCenterX - rA.getCenterX
+      val pA    = gv.getGlyphPosition(0)
+      val pB    = gv.getGlyphPosition(1)
+      val dist  = pB.getX - pA.getX
       pair -> dist
     } (breakOut)
 
@@ -133,7 +144,9 @@ object SikringTest extends SimpleSwingApplication {
     }
 
     val aligned   = EditTranscript.alignWith(phraseShapes, fill = Vertex.EmptyShape)
-    val alignedS  = EditTranscript.align    (phrases     , fill = '_')
+    val alignedS  = EditTranscript.align    (phrases     , fill = '*')
+
+    println(alignedS.mkString("\n"))
 
     val PhasePeriod = 4 * 25
 

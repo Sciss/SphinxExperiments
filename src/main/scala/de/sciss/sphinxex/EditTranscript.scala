@@ -117,7 +117,7 @@ object EditTranscript {
           y   :+= fill
       }
 
-      done :+= y.padTo(aIdx, fill)
+      done :+= y.padTo(a.length /* aIdx */, fill)
     }
 
     done

@@ -64,3 +64,5 @@ for (colIdx <- 0 until (numColumns - 1)) {
    4 > 6
  */
 
+val t1 = EditTranscript.align(Vector("DIE JUWELEN ES", "THEORIEN ES", ""))
+t1.mkString("\n","\n",""  )
