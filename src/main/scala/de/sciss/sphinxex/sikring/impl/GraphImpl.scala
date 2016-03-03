@@ -15,6 +15,7 @@ package de.sciss.sphinxex
 package sikring
 package impl
 
+import scala.collection.mutable
 import scala.concurrent.stm.{Ref, TMap, TSet, InTxn}
 import scala.swing.Graphics2D
 
@@ -61,7 +62,26 @@ final class GraphImpl extends Graph {
   def tick()(implicit tx: InTxn): Unit = {
     val time = timeRef.transformAndGet(_ + 1)
     vertices.foreach(_.tick(time))
-    // edges...
+
+    final class Acc(var x: Double = 0.0, var y: Double = 0.0) {
+      def += (p: DoublePoint2D): Unit = {
+        x += p.x
+        y += p.y
+      }
+      def toPoint: DoublePoint2D = DoublePoint2D(x, y)
+    }
+
+    val acc = mutable.Map.empty[Vertex, Acc] // .withDefaultValue(new Acc)
+    edges.foreach { e =>
+      val (sourceF, sinkF) = e.evalForce(time)
+      acc.getOrElseUpdate(e.source, new Acc) += sourceF
+      acc.getOrElseUpdate(e.sink  , new Acc) += sinkF
+    }
+    // println(s"# edges = ${edges.size} - acc.size ${acc.size}")
+    acc.foreach { case (v, a) =>
+      // println(f"Vertex ${v.label}: ${a.x}%1.3f")
+      v.position = v.position + a.toPoint
+    }
   }
 
   def zoom                        (implicit tx: InTxn): Double        = zoomRef()

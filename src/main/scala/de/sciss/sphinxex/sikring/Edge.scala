@@ -13,6 +13,8 @@
 
 package de.sciss.sphinxex.sikring
 
+import scala.concurrent.stm.InTxn
+
 object Edge {
   def apply(source: Vertex, sink: Vertex, force: Force): Edge =
     new Impl(source = source, sink = sink, force = force)
@@ -22,12 +24,13 @@ object Edge {
 
     override def toString = s"Edge($source, $sink, $force)"
 
-    def evalForce: (DoublePoint2D, DoublePoint2D) = force.eval(this)
+    def evalForce(time: Int)(implicit tx: InTxn): (DoublePoint2D, DoublePoint2D) =
+      force.eval(time = time, edge = this)
   }
 }
 trait Edge {
   def source: Vertex
   def sink  : Vertex
 
-  def evalForce: (DoublePoint2D, DoublePoint2D)
+  def evalForce(time: Int)(implicit tx: InTxn): (DoublePoint2D, DoublePoint2D)
 }

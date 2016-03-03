@@ -23,7 +23,9 @@ import de.sciss.shapeint.ShapeInterpolator
 import scala.collection.immutable.{IndexedSeq => Vec}
 import scala.concurrent.stm.{InTxn, Ref}
 
-final class VertexImpl(startTime: Int, phasePeriod: Int, seq: Vec[Shape]) extends Vertex {
+final class VertexImpl(val label: String, startTime: Int, phasePeriod: Int, seq: Vec[Shape])
+  extends Vertex {
+
   import Vertex.EmptyShape
 
   private[this] val stepRef   = Ref(0)
@@ -39,8 +41,8 @@ final class VertexImpl(startTime: Int, phasePeriod: Int, seq: Vec[Shape]) extend
     val dt      = time - startTime
     val step    = (dt / phasePeriod) % seq.size
     val phase   = (dt % phasePeriod).toDouble / phasePeriod
-    val w0      = if (seq (step)                 == EmptyShape) 0.0 else 1.0
-    val w1      = if (seq((step + 1) % seq.size) == EmptyShape) 0.0 else 1.0
+    val w0      = if (seq (step)                 .isEmpty) 0.0 else 1.0
+    val w1      = if (seq((step + 1) % seq.size) .isEmpty) 0.0 else 1.0
     val weight  = w0 * (1 - phase) + w1 * phase
     stepRef()   = step
     phaseRef()  = phase

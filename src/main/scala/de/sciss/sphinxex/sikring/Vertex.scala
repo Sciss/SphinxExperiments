@@ -25,11 +25,11 @@ import scala.concurrent.stm.InTxn
 object Vertex {
   final val EmptyShape: Shape = new Path2D.Float
 
-  def apply(startTime: Int, phasePeriod: Int, seq: Vec[Shape]): Vertex =
-    new VertexImpl(startTime = startTime, phasePeriod = phasePeriod, seq = seq)
+  def apply(label: String, startTime: Int, phasePeriod: Int, seq: Vec[Shape]): Vertex =
+    new VertexImpl(label = label, startTime = startTime, phasePeriod = phasePeriod, seq = seq)
 }
 trait Vertex {
-  // def startTime: Int
+  def label: String
 
   def tick(time: Int)(implicit tx: InTxn): Unit
 

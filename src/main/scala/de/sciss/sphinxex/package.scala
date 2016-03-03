@@ -13,7 +13,10 @@
 
 package de.sciss
 
+import java.awt.Shape
+
 import de.sciss.processor.ProcessorLike
+import de.sciss.sphinxex.sikring.Vertex
 
 import scala.concurrent.{ExecutionContext, ExecutionContextExecutor}
 
@@ -24,6 +27,11 @@ package object sphinxex {
   implicit final class VecOps[A](private val in: Vec[A]) extends AnyVal {
     def removeAt(index: Int         ): Vec[A] = in.patch(index, Nil        , 1)
     def insert  (index: Int, elem: A): Vec[A] = in.patch(index, elem :: Nil, 0)
+  }
+
+  implicit final class ShapeOps(private val in: Shape) extends AnyVal {
+    def isEmpty  : Boolean = in == Vertex.EmptyShape
+    def isDefined: Boolean = !isEmpty
   }
 
   def mkBlockTread(): AnyRef = {

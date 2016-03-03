@@ -57,12 +57,12 @@ object EditTranscript {
 
         And the last action can be improved: an 'I' where a place holder '*' is found is "swalled". Thus:
 
-        f**rom**
-        c*hrome*
-        c*as**e*
-        plac**e*
-        i**c**e*
-        i**nn*er
+        "f**rom**"
+        "c*hrome*"
+        "c*as**e*"
+        "plac**e*"
+        "i**c**e*"
+        "i**nn*er"
 
         So the algorithm is as follows:
 

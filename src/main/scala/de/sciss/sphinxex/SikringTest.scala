@@ -18,7 +18,7 @@ import java.awt.{RenderingHints, Color, Shape}
 import javax.swing.{Timer, SpinnerNumberModel}
 
 import de.sciss.kollflitz
-import de.sciss.sphinxex.sikring.{DoublePoint2D, Graph, Vertex}
+import de.sciss.sphinxex.sikring.{Force, Edge, DoublePoint2D, Graph, Vertex}
 import de.sciss.swingplus.Spinner
 
 import scala.collection.breakOut
@@ -28,13 +28,56 @@ import scala.swing.{Swing, Label, CheckBox, BorderPanel, FlowPanel, Button, Dime
 
 object SikringTest extends SimpleSwingApplication {
   lazy val top: Frame = {
-    val phrases = Vec(
-      "DIE JUWELEN ES",
-      "DIE VIREN ES",
-      "JUWELEN ES",
-      "THEORIEN ES")
+//    val phrases = Vec(
+//      "DIE JUWELEN ES",
+//      "DIE VIREN ES",
+//      "JUWELEN ES",
+//      "THEORIEN ES")
 
 //    val phrases = Vec("D", "")
+
+    val phrases = Vec("DAS", "DS")
+
+    /*
+        ---- edge forces ----
+
+        say we delete a character:
+
+        "BAR"
+        "B*R"
+
+        thus we need edges (B, A), (A, R) and (B, R)
+
+        let's look at a more complex example:
+
+        "f**rom**"
+        "c*hrome*"
+        "c*as**e*"
+        "plac**e*"
+        "i**c**e*"
+        "i**nn*er"
+
+        - each column is a vertex
+        - thus we can connect each pair of adjacent columns
+        - we look from each column to all its right neighbours
+        - if a neighbour column contains a '*' in any row
+          for which the current column does not contain a '*'
+          in that same row, and the n-th neighbour column
+          does not contain a '*' in that row, we add another
+          edge, where n = 2 to width
+
+        // note -- we could abort as soon as `b` is false.
+        // if we start with n = 2, we automatically include all adjacent vertices
+        for (n <- 3 to (numCols - colIdx)) {
+          val b = (0 until numRows).exists { rowIdx =>
+            val sel = columns.slice(colIdx, colIdx + n)
+            val sub = sel.map(_.apply(rowIdx)).mkString
+            sub.head.isDefined && sub.last.isDefined &&
+              sub.init.tail.forall(_.isEmpty)
+          }
+          if (b) addEdge
+        }
+     */
 
     val graph = Graph()
     val font  = MyFont(64)
@@ -62,18 +105,18 @@ object SikringTest extends SimpleSwingApplication {
 
     import kollflitz.Ops._
 
-    val charSet     = phrases.flatMap(x => x: Vec[Char])(breakOut): Set[Char]
-    val charShapes  = charSet.map { c =>
+    val charSet   : Set[Char]         = phrases.flatMap(x => x: Vec[Char])(breakOut)
+    val charShapes: Map[Char, Shape]  = charSet.map { c =>
       val gv    = font.createGlyphVector(frc, c.toString)
       val shape = gv.getOutline
       c -> shape
-    } (breakOut): Map[Char, Shape]
+    } (breakOut)
 
-    val charPairs   = phrases.flatMap { ph =>
+    val charPairs: Set[(Char, Char)]  = phrases.flatMap { ph =>
       (ph: Vec[Char]).mapPairs((a, b) => (a, b))(breakOut): Set[(Char, Char)]
-    } (breakOut): Set[(Char, Char)]
+    } (breakOut)
 
-    val charPairSpacing = charPairs.map { case pair @ (a, b) =>
+    val charPairSpacing: Map[(Char, Char), Double] = charPairs.map { case pair @ (a, b) =>
       val gv      = font.createGlyphVector(frc, s"$a$b")
       val shpA    = gv.getGlyphOutline(0)
       val shpB    = gv.getGlyphOutline(1)
@@ -81,7 +124,7 @@ object SikringTest extends SimpleSwingApplication {
       val rB      = shpB.getBounds2D
       val dist    = rB.getCenterX - rA.getCenterX
       pair -> dist
-    } (breakOut): Map[(Char, Char), Double]
+    } (breakOut)
 
     tmpG.dispose()
 
@@ -89,15 +132,49 @@ object SikringTest extends SimpleSwingApplication {
       phrase.map(c => (c, charShapes(c)))
     }
 
-    val aligned = EditTranscript.alignWith(phraseShapes, fill = Vertex.EmptyShape)
+    val aligned   = EditTranscript.alignWith(phraseShapes, fill = Vertex.EmptyShape)
+    val alignedS  = EditTranscript.align    (phrases     , fill = '_')
 
     val PhasePeriod = 4 * 25
 
     atomic { implicit tx =>
-      aligned.transpose.zipWithIndex.foreach { case (columnShapes, columnIdx) =>
-        val v       = Vertex(startTime = 0, phasePeriod = PhasePeriod, seq = columnShapes)
+      // create vertices
+      val columns     = aligned.transpose
+      val numRows     = aligned.size
+      val numColumns  = columns.size
+
+      val vertices = columns.zipWithIndex.map { case (columnShapes, columnIdx) =>
+        val v       = Vertex(columnIdx.toString, startTime = 0, phasePeriod = PhasePeriod, seq = columnShapes)
         v.position  = DoublePoint2D(x = columnIdx * 48 + 8, y = 64)
         graph.addVertex(v)
+        v
+      }
+
+      // create edges
+      for (colIdx <- 0 until (numColumns - 1)) {
+        for (n <- 2 /* 3 */ to (numColumns - colIdx)) {
+          val b = (0 until numRows).exists { rowIdx =>
+            val sel = columns.slice(colIdx, colIdx + n)
+            val sub = sel.map(_.apply(rowIdx)) // .mkString
+            val res = sub.head.isDefined && sub.last.isDefined && sub.init.tail.forall(_.isEmpty)
+            // if (res) println(sub.mkString)
+            res
+          }
+          if (b) {
+            // println(s"$colIdx > ${colIdx + n - 1}")
+            val sourceIdx = colIdx
+            val sinkIdx   = colIdx + n - 1
+            val sourceV   = vertices(sourceIdx)
+            val sinkV     = vertices(sinkIdx)
+            val spacing   = alignedS.map { row =>
+              val pair = (row(sourceIdx), row(sinkIdx))
+              charPairSpacing.getOrElse(pair, 0.0)
+            }
+            val force     = Force.HTorque(startTime = 0, phasePeriod = PhasePeriod, seq = spacing)
+            val e         = Edge(sourceV, sinkV, force = force)
+            graph.addEdge(e)
+          }
+        }
       }
     }
 
