@@ -13,9 +13,12 @@
 
 package de.sciss.sphinxex
 
+import java.awt.image.BufferedImage
 import java.awt.{Color, RenderingHints}
+import javax.imageio.ImageIO
 import javax.swing.{SpinnerNumberModel, Timer}
 
+import de.sciss.file._
 import de.sciss.sphinxex.sikring.Renderer
 import de.sciss.swingplus.Spinner
 
@@ -25,7 +28,6 @@ import scala.swing.{BorderPanel, Button, CheckBox, Component, Dimension, FlowPan
 
 object SikringTest extends SimpleSwingApplication {
   lazy val top: Frame = {
-    println("Hello...")
     val phrases = Vec(
 //      Vec(
 //        // 01234567890123
@@ -121,20 +123,24 @@ object SikringTest extends SimpleSwingApplication {
     )
 
     val graph = Renderer(phrases)
-    atomic { implicit tx => graph.zoom = 0.7 }
+    atomic { implicit tx => graph.zoom = 0.9 }
+
+    def prepareGraphics(g: Graphics2D, w: Int, h: Int): Unit = {
+      g.setColor(Color.black)
+      g.fillRect(0, 0, w, h)
+      g.setColor(Color.white)
+      g.setRenderingHint(RenderingHints.KEY_ANTIALIASING  , RenderingHints.VALUE_ANTIALIAS_ON)
+      g.setRenderingHint(RenderingHints.KEY_STROKE_CONTROL, RenderingHints.VALUE_STROKE_PURE )
+    }
 
     val comp  = new Component {
       background    = Color.black
       foreground    = Color.white
-      preferredSize = new Dimension(1024, 84 * phrases.size)
+      preferredSize = new Dimension(1440, 84 * phrases.size)
       opaque        = true
 
       override protected def paintComponent(g: Graphics2D): Unit = {
-        g.setColor(background)
-        g.fillRect(0, 0, peer.getWidth, peer.getHeight)
-        g.setColor(foreground)
-        g.setRenderingHint(RenderingHints.KEY_ANTIALIASING  , RenderingHints.VALUE_ANTIALIAS_ON)
-        g.setRenderingHint(RenderingHints.KEY_STROKE_CONTROL, RenderingHints.VALUE_STROKE_PURE )
+        prepareGraphics(g, peer.getWidth, peer.getHeight)
         atomic { implicit tx =>
           graph.render(g)
         }
@@ -173,7 +179,28 @@ object SikringTest extends SimpleSwingApplication {
       }
     }
 
-    val pBut  = new FlowPanel(ggTick, ggAdvance, new Label("fps:"), ggFPS, ggAnim)
+    val ggMovie = Button("Export Movie...") {
+      val dir = file("image_out") / "video"
+      def mkFile(frame: Int) = dir / s"frame-$frame.png"
+      if (mkFile(1).exists()) {
+        println("Video already exists. Not overwriting!")
+      } else {
+        val dim = comp.preferredSize
+        val img = new BufferedImage(dim.width, dim.height, BufferedImage.TYPE_BYTE_GRAY)
+        val g   = img.createGraphics()
+        for (fr <- 1 to (25 * 60)) {
+          println(s"frame $fr")
+          prepareGraphics(g, dim.width, dim.height)
+          atomic { implicit tx =>
+            graph.tick()
+            graph.render(g)
+          }
+          ImageIO.write(img, "png", mkFile(fr))
+        }
+      }
+    }
+
+    val pBut  = new FlowPanel(ggTick, ggAdvance, new Label("fps:"), ggFPS, ggAnim, ggMovie)
 
     new MainFrame {
       title     = "Sikring Test"
