@@ -163,7 +163,7 @@ object Renderer {
                 charPairSpacing(pair) // .getOrElse(pair, 0.0)
               }
             }
-            println(s"$colIdx > ${colIdx + n - 1} : ${spacing.mkString(", ")}")
+            // println(s"$colIdx > ${colIdx + n - 1} : ${spacing.mkString(", ")}")
             val force     = Force.HTorque(startTime = 0, phasePeriod = PhasePeriod, seq = spacing)
             val e         = Edge(sourceV, sinkV, force = force)
             graph.addEdge(e)

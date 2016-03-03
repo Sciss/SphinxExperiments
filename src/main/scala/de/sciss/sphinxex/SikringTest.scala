@@ -136,7 +136,7 @@ object SikringTest extends SimpleSwingApplication {
     val comp  = new Component {
       background    = Color.black
       foreground    = Color.white
-      preferredSize = new Dimension(1440, 84 * phrases.size)
+      preferredSize = new Dimension(1280 /* 1440 */, 84 * phrases.size)
       opaque        = true
 
       override protected def paintComponent(g: Graphics2D): Unit = {
