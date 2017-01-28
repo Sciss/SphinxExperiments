@@ -35,6 +35,9 @@ object Json {
   //    }
   //  }
 
+  implicit def latticeFormat: Format[result.Lattice]  = LatticeFormat
+  implicit def edgeFormat   : Format[EdgeDef]         = EdgeFormat
+
   implicit object WordFormat extends Format[Word] {
     def reads(json: JsValue): JsResult[Word] = json match {
       case JsString(spell) =>
@@ -101,18 +104,18 @@ object Json {
     def reads(json: JsValue): JsResult[NodeDef] = json match {
       case JsObject(Seq(
         ("id"   , JsString(id)),
-        ("word" , wordJ),
+        ("word" , wordJ: JsValue),
         ("begin", JsNumber(beginTime)),
         ("end"  , JsNumber(endTime)),
         ("fwd"  , JsNumber(forward)),
         ("bwd"  , JsNumber(backward)),
         ("post" , JsNumber(posterior)),
-        ("pred" , bestPredJ),
+        ("pred" , bestPredJ: JsValue),
         ("vit"  , JsNumber(viterbi))
       )) =>
 
         for {
-          word     <- WordFormat.reads(wordJ)
+          word     <- WordFormat  .reads(wordJ)
           bestPred <- StringOption.reads(bestPredJ)
         } yield {
           NodeDef(id, word, beginTime = beginTime.toLong, endTime = endTime.toLong,
@@ -130,7 +133,7 @@ object Json {
   }
   case class EdgeDef(from: String, to: String, as: Double, lms: Double)
 
-  implicit object EdgeFormat extends Format[EdgeDef] {
+  object EdgeFormat extends Format[EdgeDef] {
     def reads(json: JsValue): JsResult[EdgeDef] = json match {
       case JsObject(Seq(
           ("from" , JsString(from)),
@@ -154,11 +157,11 @@ object Json {
       ))
   }
 
-  implicit object LatticeFormat extends Format[result.Lattice] {
+  object LatticeFormat extends Format[result.Lattice] {
     def reads(json: JsValue): JsResult[result.Lattice] = json match {
       case JsObject(Seq(
-          ("nodes", nodesJ),
-          ("edges", edgesJ),
+          ("nodes", nodesJ: JsValue),
+          ("edges", edgesJ: JsValue),
           ("init" , JsString(initialId)),
           ("term" , JsString(terminalId))
         )) =>

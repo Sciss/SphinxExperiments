@@ -136,7 +136,7 @@ object SikringTest extends SimpleSwingApplication {
     val comp  = new Component {
       background    = Color.black
       foreground    = Color.white
-      preferredSize = new Dimension(1280 /* 1440 */, 84 * phrases.size)
+      preferredSize = new Dimension(/* 1280 */ /* 1440 */ 1680, 1024 /* 84 * phrases.size - 32 */)
       opaque        = true
 
       override protected def paintComponent(g: Graphics2D): Unit = {
@@ -188,6 +188,7 @@ object SikringTest extends SimpleSwingApplication {
         val dim = comp.preferredSize
         val img = new BufferedImage(dim.width, dim.height, BufferedImage.TYPE_BYTE_GRAY)
         val g   = img.createGraphics()
+        g.translate(32, 32)
         for (fr <- 1 to (25 * 60)) {
           println(s"frame $fr")
           prepareGraphics(g, dim.width, dim.height)

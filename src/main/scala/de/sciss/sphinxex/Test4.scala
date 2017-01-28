@@ -19,6 +19,7 @@ import edu.cmu.sphinx.result.Nbest
 
 import scala.collection.JavaConverters
 import scala.concurrent.{Future, blocking}
+import scala.util.{Failure, Success}
 
 object Test4 extends App {
   val audioFile = userHome / "Downloads" / "unvorhergesehen-mRsmpCut.wav"
@@ -27,8 +28,8 @@ object Test4 extends App {
   val proc = Processor.fromFuture("Read", Future(blocking(ParseToJson.read(jsonFile))))
 
   proc.monitor(printResult = false)
-  proc.onSuccess {
-    case ParseToJson.Read(_, lattices) =>
+  proc.onComplete {
+    case Success(ParseToJson.Read(_, lattices)) =>
       println(s"Recovered ${lattices.size} lattices.")
       lattices.foreach { l =>
         import JavaConverters._
@@ -38,9 +39,8 @@ object Test4 extends App {
         new Nbest(l).getNbest(4).asScala.foreach(println)
       }
       sys.exit()
-  }
-  proc.onFailure {
-    case _ =>
+
+    case Failure(_) =>
       Thread.sleep(200)
       sys.exit(1)
   }

@@ -18,7 +18,7 @@ import java.awt.Shape
 import de.sciss.processor.ProcessorLike
 import de.sciss.sphinxex.sikring.Vertex
 
-import scala.concurrent.{ExecutionContext, ExecutionContextExecutor}
+import scala.concurrent.ExecutionContext
 
 package object sphinxex {
   type Vec[+A]  = scala.collection.immutable.IndexedSeq[A]
@@ -46,21 +46,18 @@ package object sphinxex {
     sync
   }
 
-  def waitForProcessor(p: ProcessorLike[Any, Any])(implicit exec: ExecutionContext): Unit = {
+  def waitForProcessor(p: ProcessorLike[Any, Any])(implicit executionContext: ExecutionContext): Unit = {
     val sync = mkBlockTread()
-    p.onComplete {
-      case _ => sync.synchronized(sync.notify())
-    }
+    p.onComplete(_ => sync.synchronized(sync.notify()))
   }
 
-  def exitWithProcessor(p: ProcessorLike[Any, Any])(implicit exec: ExecutionContext): Unit = {
+  def exitWithProcessor(p: ProcessorLike[Any, Any])(implicit executionContext: ExecutionContext): Unit = {
     waitForProcessor(p)
-    p.onSuccess {
-      case _ =>
-        Thread.sleep(200)
-        sys.exit()
+    p.foreach {_ =>
+      Thread.sleep(200)
+      sys.exit()
     }
   }
 
-  implicit val executionContext: ExecutionContextExecutor = ExecutionContext.Implicits.global
+  implicit val executionContext: ExecutionContext /* Executor */ = ExecutionContext.Implicits.global
 }

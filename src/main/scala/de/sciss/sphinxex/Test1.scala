@@ -25,13 +25,15 @@ import scala.collection.JavaConverters
 // -DlogLevel=WARNING
 object Test1 extends App {
   val cfg = new Configuration
+  sys.props("logLevel") = "WARNING"
 
   cfg.setAcousticModelPath("resource:/edu/cmu/sphinx/models/en-us/en-us")
   cfg.setDictionaryPath   ("resource:/edu/cmu/sphinx/models/en-us/cmudict-en-us.dict")
   cfg.setLanguageModelPath("resource:/edu/cmu/sphinx/models/en-us/en-us.lm.bin")
 
   val rec   = new StreamSpeechRecognizer(cfg)
-  val fIn   = userHome / "Downloads" / "Big_Ego_12-burroughsRsmp.wav"
+  // val fIn   = userHome / "Downloads" / "Big_Ego_12-burroughsRsmp.wav"
+  val fIn   = userHome / "Documents" / "projects" / "Transpositions"/ "audio_work" / "B18h00m41s08mar2016-MonoRsmp.wav"
   val is    = new FileInputStream(fIn)
 
   rec.startRecognition(is)
@@ -56,9 +58,10 @@ object Test1 extends App {
         val startF  = timeFmt.format(start)
         val endF    = timeFmt.format(end  )
         // s"{${word.word}, %.3f, [%s]}", word, LogMath.getLogMath().logToLinear((float)getConfidence()), timeFrame);
-        s"{$word, [$startF - $endF]}"
+        word // s"{$word, [$startF - $endF]}"
       }
-      println(listS.mkString(", "))
+      // println(listS.mkString(", "))
+      println(listS.init.mkString(" "))
       loop()
     case None =>
       rec.stopRecognition()
