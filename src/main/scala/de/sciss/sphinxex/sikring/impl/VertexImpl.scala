@@ -30,19 +30,43 @@ object VertexImpl {
   private[this] sealed trait PathCmd {
     def addTo(p: Path2D): Unit
   }
-  private[this] final case class PathMove(x: Double, y: Double) extends PathCmd {
+  private[this] sealed trait PathCmdTo extends PathCmd {
+    def endX: Double
+    def endY: Double
+
+    def reverse(startX: Double, startY: Double): PathCmdTo
+  }
+  private[this] final case class PathMove(x: Double, y: Double) extends PathCmdTo {
     def addTo(p: Path2D): Unit = p.moveTo(x, y)
+    def endX: Double = x
+    def endY: Double = x
+
+    def reverse(startX: Double, startY: Double): PathMove = PathMove(startX, startY)
   }
-  private[this] final case class PathLine(x: Double, y: Double) extends PathCmd {
+  private[this] final case class PathLine(x: Double, y: Double) extends PathCmdTo {
     def addTo(p: Path2D): Unit = p.lineTo(x, y)
+    def endX: Double = x
+    def endY: Double = y
+
+    def reverse(startX: Double, startY: Double): PathLine = PathLine(startX, startY)
   }
-  private[this] final case class PathQuad(x1: Double, y1: Double, x2: Double, y2: Double) extends PathCmd {
+  private[this] final case class PathQuad(x1: Double, y1: Double, x2: Double, y2: Double) extends PathCmdTo {
     def addTo(p: Path2D): Unit = p.quadTo(x1, y1, x2, y2)
+    def endX: Double = x2
+    def endY: Double = y2
+
+    def reverse(startX: Double, startY: Double): PathQuad =
+      PathQuad(x1, y1, startX, startY)
   }
   private[this] final case class PathCube(x1: Double, y1: Double, x2: Double, y2: Double, x3: Double, y3: Double)
-    extends PathCmd {
+    extends PathCmdTo {
 
     def addTo(p: Path2D): Unit = p.curveTo(x1, y1, x2, y2, x3, y3)
+    def endX: Double = x3
+    def endY: Double = y3
+
+    def reverse(startX: Double, startY: Double): PathCube =
+      PathCube(x2, y2, x1, y1, startX, startY)
   }
   private[this] case object PathClose extends PathCmd {
     def addTo(p: Path2D): Unit = p.closePath()
@@ -72,7 +96,7 @@ object VertexImpl {
     map.withDefaultValue((0, 0))
   }
 
-  def shiftShape(name: String, shp: Shape, shift: Int): Shape = {
+  private def mkCmd(shp: Shape): Vector[PathCmd] = {
     val it  = shp.getPathIterator(null)
     val vb  = Vector.newBuilder[PathCmd]
     val c   = new Array[Double](6)
@@ -89,14 +113,45 @@ object VertexImpl {
       vb += cmd
       it.next()
     }
-    val v = vb.result()
+    val v: Vector[PathCmd] = vb.result()
+    v
+  }
 
+  private def mkGroups(v: Vector[PathCmd]): Iterator[Vector[PathCmd]] = {
     import kollflitz.Ops._
-    val itGroup = v.groupWith {
+    v.groupWith {
       case (PathClose, PathMove(_, _)) => false
       case _ => true
     }
-    val head = itGroup.next()
+  }
+
+  def reverseShape(shp: Shape): Shape = {
+    val v       = mkCmd(shp)
+    val itGroup = mkGroups(v).toVector
+    val cmdOut = itGroup.flatMap { group =>
+      val (move @ PathMove(x0, y0)) +: init :+ PathClose = group
+      val (x1, y1, rev) = ((x0, y0, Vector.empty[PathCmd]) /: init) {
+        case ((startX, startY, res), cmd: PathCmdTo) =>
+          (cmd.endX, cmd.endY, cmd.reverse(startX, startY) +: res)
+        case _ => throw new IllegalStateException
+      }
+
+      val seq0 = rev :+ PathClose
+      val seq1 = if (x1 == x0 && y1 == y0) seq0 else PathLine(x1, y1) +: seq0
+      move +: seq1
+    }
+
+    val p = new Path2D.Float()
+    cmdOut.foreach(_.addTo(p))
+    p
+  }
+
+  def shiftShape(name: String, shp: Shape, shift: Int): Shape = {
+    val v = mkCmd(shp)
+
+    import kollflitz.Ops._
+    val itGroup = mkGroups(v)
+    val head: Vector[PathCmd] = itGroup.next()
 
     val segm = head.groupWith {
       case (_, PathLine(_, _)) => false

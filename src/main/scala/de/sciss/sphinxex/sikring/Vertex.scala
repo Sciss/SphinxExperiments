@@ -28,6 +28,8 @@ object Vertex {
   def apply(label: String, startTime: Int, phasePeriod: Int, seq: Vec[(Char, Shape)]): Vertex =
     new VertexImpl(label = label, startTime = startTime, phasePeriod = phasePeriod, seq = seq)
 
+  def reverseShape(shp: Shape): Shape = VertexImpl.reverseShape(shp)
+
   def shiftShape(name: String, shp: Shape, shift: Int): Shape = VertexImpl.shiftShape(name, shp, shift)
 }
 trait Vertex {

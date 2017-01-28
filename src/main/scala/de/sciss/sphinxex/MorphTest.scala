@@ -13,11 +13,10 @@
 
 package de.sciss.sphinxex
 
-import java.awt.geom.{Path2D, PathIterator, AffineTransform}
-import java.awt.{Shape, Color, RenderingHints}
+import java.awt.geom.AffineTransform
+import java.awt.{Color, RenderingHints}
 import javax.swing.{SpinnerNumberModel, Timer}
 
-import de.sciss.kollflitz
 import de.sciss.numbers
 import de.sciss.shapeint.ShapeInterpolator
 import de.sciss.sphinxex.sikring.Vertex
@@ -25,7 +24,7 @@ import de.sciss.swingplus.Spinner
 
 import scala.swing.Swing._
 import scala.swing.event.{ButtonClicked, EditDone, ValueChanged}
-import scala.swing.{Button, BorderPanel, BoxPanel, CheckBox, Component, Frame, Graphics2D, Orientation, Slider, SwingApplication, TextField}
+import scala.swing.{BorderPanel, BoxPanel, Button, CheckBox, Component, FlowPanel, Frame, Graphics2D, Orientation, Slider, SwingApplication, TextField}
 
 object MorphTest extends SwingApplication {
   private final val PiH = (math.Pi/2).toFloat
@@ -56,11 +55,23 @@ object MorphTest extends SwingApplication {
         case ValueChanged(_) => ggShape.repaint()
       }
     }
+    lazy val ggRevA    = new CheckBox("Reverse") {
+      listenTo(this)
+      reactions += {
+        case ButtonClicked(_) => ggShape.repaint()
+      }
+    }
     lazy val mShiftB   = new SpinnerNumberModel(0, 0, 32, 1)
     lazy val ggShiftB  = new Spinner(mShiftB) {
       listenTo(this)
       reactions += {
         case ValueChanged(_) => ggShape.repaint()
+      }
+    }
+    lazy val ggRevB    = new CheckBox("Reverse") {
+      listenTo(this)
+      reactions += {
+        case ButtonClicked(_) => ggShape.repaint()
       }
     }
     lazy val ggResetShift = Button("Reset") {
@@ -161,8 +172,10 @@ object MorphTest extends SwingApplication {
 
             val iShiftA = mShiftA.getNumber.intValue()
             val iShiftB = mShiftB.getNumber.intValue()
-            val shpA    = if (iShiftA == 0) shpA0 else Vertex.shiftShape("A", shpA0, iShiftA)
-            val shpB    = if (iShiftB == 0) shpB0 else Vertex.shiftShape("B", shpB0, iShiftB)
+            val shpA1   = if (!ggRevA.selected) shpA0 else Vertex.reverseShape(shpA0)
+            val shpB1   = if (!ggRevB.selected) shpB0 else Vertex.reverseShape(shpB0)
+            val shpA    = if (iShiftA == 0) shpA1 else Vertex.shiftShape("A", shpA1, iShiftA)
+            val shpB    = if (iShiftB == 0) shpB1 else Vertex.shiftShape("B", shpB1, iShiftB)
 
             val shp   = shpMorph.evaluate(shpA, shpB, f, true)
             g.fill(shp)
@@ -207,10 +220,9 @@ object MorphTest extends SwingApplication {
       contents += ggTextA
       contents += ggTextB
       contents += ggSlider
-      contents += ggShiftA
-      contents += ggShiftB
-      contents += ggResetShift
-      contents += ggPostShift
+      contents += new FlowPanel(ggShiftA, ggRevA)
+      contents += new FlowPanel(ggShiftB, ggRevB)
+      contents += new FlowPanel(ggResetShift, ggPostShift)
       contents += ggTimer
     }
 

@@ -29,6 +29,9 @@ import scala.swing.{BorderPanel, Button, CheckBox, Component, Dimension, FlowPan
 object SikringTest extends SimpleSwingApplication {
   lazy val top: Frame = {
     val phrases = Vec(
+      Vec("almat", "ALMAT")
+    )
+    val phrasesOLD = Vec(
 //      Vec(
 //        // 01234567890123
 //        "DIE JUWELEN ES",
