@@ -31,6 +31,8 @@ object Vertex {
   def reverseShape(shp: Shape): Shape = VertexImpl.reverseShape(shp)
 
   def shiftShape(name: String, shp: Shape, shift: Int): Shape = VertexImpl.shiftShape(name, shp, shift)
+
+  def changeShapeRule(shp: Shape, evenOdd: Boolean): Shape = VertexImpl.changeShapeRule(shp, evenOdd)
 }
 trait Vertex {
   def label: String

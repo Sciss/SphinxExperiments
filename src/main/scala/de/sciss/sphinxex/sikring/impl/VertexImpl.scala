@@ -146,11 +146,19 @@ object VertexImpl {
     p
   }
 
+  def changeShapeRule(shp: Shape, evenOdd: Boolean): Shape = {
+    val p = new Path2D.Float(if (evenOdd) Path2D.WIND_EVEN_ODD else Path2D.WIND_NON_ZERO)
+    val v = mkCmd(shp)
+    v.foreach(_.addTo(p))
+    p
+  }
+
   def shiftShape(name: String, shp: Shape, shift: Int): Shape = {
     val v = mkCmd(shp)
 
     import kollflitz.Ops._
     val itGroup = mkGroups(v)
+    if (!itGroup.hasNext) return shp
     val head: Vector[PathCmd] = itGroup.next()
 
     val segm = head.groupWith {
@@ -161,7 +169,7 @@ object VertexImpl {
     // println("----SEGM----")
     // segm.foreach(println)
 
-    if (shift >= segm.size) println(s"WARNING: $name segm.size = ${segm.size}")
+    // if (shift >= segm.size) println(s"WARNING: $name segm.size = ${segm.size}")
 
     val iShift1 = shift % segm.size
     val res     = if (iShift1 == 0) shp else {
