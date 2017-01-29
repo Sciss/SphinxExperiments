@@ -17,6 +17,7 @@ import java.awt.geom.AffineTransform
 import java.awt.{Color, Font, GraphicsEnvironment, RenderingHints}
 import javax.swing.{SpinnerNumberModel, Timer}
 
+import de.sciss.file._
 import de.sciss.numbers
 import de.sciss.shapeint.ShapeInterpolator
 import de.sciss.sphinxex.sikring.Vertex
@@ -45,10 +46,18 @@ object MorphTest extends SwingApplication {
     lazy val ggSlider = new Slider {
       listenTo(this)
       reactions += {
-        case ValueChanged(_) => ggShape.repaint()
+        case ValueChanged(_) =>
+          ggShape.repaint()
+          lbSlider.text = value.toString
       }
     }
-    lazy val mShiftA   = new SpinnerNumberModel(0, 0, 32, 1)
+    lazy val lbSlider = new Label {
+      text = "999"
+      preferredSize = preferredSize
+      text = "50"
+    }
+
+    lazy val mShiftA   = new SpinnerNumberModel(0, 0, 256, 1)
     lazy val ggShiftA  = new Spinner(mShiftA) {
       listenTo(this)
       reactions += {
@@ -61,7 +70,7 @@ object MorphTest extends SwingApplication {
         case ButtonClicked(_) => ggShape.repaint()
       }
     }
-    lazy val mShiftB   = new SpinnerNumberModel(0, 0, 32, 1)
+    lazy val mShiftB   = new SpinnerNumberModel(0, 0, 256, 1)
     lazy val ggShiftB  = new Spinner(mShiftB) {
       listenTo(this)
       reactions += {
@@ -117,6 +126,12 @@ object MorphTest extends SwingApplication {
       }
     }
 
+    lazy val ggExport = Button("Export PDF") {
+      val f = userHome / "Documents" / "temp" / "glyph.pdf"
+      val v = ggShape
+      de.sciss.pdflitz.Generate(file = f, view = v, usePreferredSize = false)
+    }
+
     lazy val fontNames = GraphicsEnvironment.getLocalGraphicsEnvironment
       .getAvailableFontFamilyNames.sorted
 
@@ -141,15 +156,23 @@ object MorphTest extends SwingApplication {
       }
     }
 
-//    lazy val ggForce = new CheckBox("Force") {
-//      listenTo(this)
-//      reactions += {
-//        case ButtonClicked(_) => ggShape.repaint()
-//      }
-//    }
+    lazy val ggDiff = new CheckBox("Diff") {
+      listenTo(this)
+      reactions += {
+        case ButtonClicked(_) => ggShape.repaint()
+      }
+    }
 
     lazy val mFontSize = new SpinnerNumberModel(64, 4, 256, 1)
     lazy val ggFontSize = new Spinner(mFontSize) {
+      listenTo(this)
+      reactions += {
+        case ValueChanged(_) => updateFont()
+      }
+    }
+
+    lazy val mLines = new SpinnerNumberModel(0, 0, 256, 1)
+    lazy val ggLines = new Spinner(mLines) {
       listenTo(this)
       reactions += {
         case ValueChanged(_) => updateFont()
@@ -197,6 +220,8 @@ object MorphTest extends SwingApplication {
         val iShiftA = mShiftA.getNumber.intValue()
         val iShiftB = mShiftB.getNumber.intValue()
         val evenOdd = ggEvenOdd.selected
+        val diff    = ggDiff   .selected
+        val lines   = mLines.getNumber.intValue()
 
         while (tIdx < numT) {
           import EditTranscript._
@@ -217,13 +242,18 @@ object MorphTest extends SwingApplication {
             val shpA0 = vecA.getGlyphOutline(aIdx)
             val shpB0 = vecB.getGlyphOutline(bIdx)
 
-            val shpA1   = if (!revA) shpA0 else Vertex.reverseShape(shpA0)
-            val shpB1   = if (!revB) shpB0 else Vertex.reverseShape(shpB0)
-            val shpA    = if (iShiftA == 0) shpA1 else Vertex.shiftShape("A", shpA1, iShiftA)
-            val shpB    = if (iShiftB == 0) shpB1 else Vertex.shiftShape("B", shpB1, iShiftB)
+            val shpA1   = if (!revA)        shpA0 else Vertex.reverseShape(shpA0)
+            val shpB1   = if (!revB)        shpB0 else Vertex.reverseShape(shpB0)
+            val shpA3   = if (lines == 0)   shpA1 else Vertex.lines       (shpA1, lines)
+            val shpB3   = if (lines == 0)   shpB1 else Vertex.lines       (shpB1, lines)
+            val shpA4   = if (!diff)        shpA3 else Vertex.difference  (shpA3)
+            val shpB4   = if (!diff)        shpB3 else Vertex.difference  (shpB3)
+            val shpA    = if (iShiftA == 0) shpA4 else Vertex.shiftShape("A", shpA4, iShiftA)
+            val shpB    = if (iShiftB == 0) shpB4 else Vertex.shiftShape("B", shpB4, iShiftB)
 
             val shp0    = shpMorph.evaluate(shpA, shpB, f, true)
             val shp     = if (!evenOdd) shp0 else Vertex.changeShapeRule(shp0, evenOdd = true)
+            // val shp     = if (!diff)    shp1 else Vertex.difference(shp1)
 
             g.fill(shp)
 
@@ -266,11 +296,12 @@ object MorphTest extends SwingApplication {
     val pBot = new BoxPanel(Orientation.Vertical) {
       contents += ggTextA
       contents += ggTextB
-      contents += ggSlider
+      contents += new FlowPanel(ggSlider, lbSlider)
       contents += new FlowPanel(ggShiftA, ggRevA)
       contents += new FlowPanel(ggShiftB, ggRevB)
-      contents += new FlowPanel(ggResetShift, ggPostShift, /* ggEvenOdd, */ new Label("Font:"), ggFont, ggFontSize)
-      contents += ggTimer
+      contents += new FlowPanel(ggResetShift, ggPostShift, new Label("Lines:"), ggLines,
+        ggDiff, new Label("Font:"), ggFont, ggFontSize)
+      contents += new FlowPanel(ggTimer, ggExport)
     }
 
     new Frame {

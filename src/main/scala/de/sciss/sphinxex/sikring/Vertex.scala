@@ -33,6 +33,10 @@ object Vertex {
   def shiftShape(name: String, shp: Shape, shift: Int): Shape = VertexImpl.shiftShape(name, shp, shift)
 
   def changeShapeRule(shp: Shape, evenOdd: Boolean): Shape = VertexImpl.changeShapeRule(shp, evenOdd)
+
+  def difference(shp: Shape): Shape = VertexImpl.difference(shp)
+
+  def lines(shp: Shape, n: Int): Shape = VertexImpl.lines(shp, n)
 }
 trait Vertex {
   def label: String

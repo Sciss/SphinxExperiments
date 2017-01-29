@@ -16,50 +16,101 @@ package sikring
 package impl
 
 import java.awt.Shape
-import java.awt.geom.{Path2D, PathIterator, AffineTransform}
+import java.awt.geom.{AffineTransform, Area, Path2D, PathIterator}
 
 import de.sciss.{kollflitz, numbers}
 import de.sciss.shapeint.ShapeInterpolator
-import play.api.libs.json.{Json => PlayJson, JsNumber, JsArray, JsObject}
+import play.api.libs.json.{JsArray, JsNumber, JsObject, Json => PlayJson}
 
 import scala.collection.breakOut
 import scala.collection.immutable.{IndexedSeq => Vec}
 import scala.concurrent.stm.{InTxn, Ref}
 
 object VertexImpl {
-  private[this] sealed trait PathCmd {
+  sealed trait PathCmd {
     def addTo(p: Path2D): Unit
+
+    def toLines(startX: Double, startY: Double, n: Int): Vector[PathCmd]
   }
-  private[this] sealed trait PathCmdTo extends PathCmd {
+  sealed trait PathCmdTo extends PathCmd {
     def endX: Double
     def endY: Double
 
     def reverse(startX: Double, startY: Double): PathCmdTo
   }
-  private[this] final case class PathMove(x: Double, y: Double) extends PathCmdTo {
+  sealed trait PathCanInterpolate extends PathCmdTo {
+    def interpolate(startX: Double, startY: Double, t: Double): PathLine
+
+    override def toLines(startX: Double, startY: Double, n: Int): Vector[PathLine] =
+      if (n == 0) Vector(PathLine(endX, endY)) else {
+        val fin = PathLine(endX, endY)
+        Vector.tabulate(n) { i =>
+          if (i == n - 1) fin else {
+            import numbers.Implicits._
+            val t = (i + 1).linlin(0, n, 0.0, 1.0)
+            interpolate(startX, startY, t)
+          }
+        }
+      }
+  }
+
+  final case class PathMove(x: Double, y: Double) extends PathCmdTo {
     def addTo(p: Path2D): Unit = p.moveTo(x, y)
     def endX: Double = x
-    def endY: Double = x
+    def endY: Double = y
 
     def reverse(startX: Double, startY: Double): PathMove = PathMove(startX, startY)
+
+    def toLines(startX: Double, startY: Double, n: Int): Vector[PathCmd] = Vector(this)
   }
-  private[this] final case class PathLine(x: Double, y: Double) extends PathCmdTo {
+  final case class PathLine(x: Double, y: Double) extends PathCanInterpolate {
     def addTo(p: Path2D): Unit = p.lineTo(x, y)
     def endX: Double = x
     def endY: Double = y
 
     def reverse(startX: Double, startY: Double): PathLine = PathLine(startX, startY)
+
+    def interpolate(startX: Double, startY: Double, t: Double): PathLine = {
+      require(t >= 0 && t <= 1)
+      import numbers.Implicits._
+      val xi = t.linlin(0, 1, startX, x)
+      val yi = t.linlin(0, 1, startY, y)
+      PathLine(xi, yi)
+    }
   }
-  private[this] final case class PathQuad(x1: Double, y1: Double, x2: Double, y2: Double) extends PathCmdTo {
+  final case class PathQuad(x1: Double, y1: Double, x2: Double, y2: Double) extends PathCanInterpolate {
     def addTo(p: Path2D): Unit = p.quadTo(x1, y1, x2, y2)
     def endX: Double = x2
     def endY: Double = y2
 
     def reverse(startX: Double, startY: Double): PathQuad =
       PathQuad(x1, y1, startX, startY)
+
+    def interpolate(startX: Double, startY: Double, t: Double): PathLine = ???
   }
-  private[this] final case class PathCube(x1: Double, y1: Double, x2: Double, y2: Double, x3: Double, y3: Double)
-    extends PathCmdTo {
+
+  private def B(t: Double, c: Double, n: Int, m: Int): Double = c * math.pow(t, m) * math.pow(1 - t, n - m)
+
+  private def factorial(n: Int): Int = {
+    require (n >= 0)
+    var res = 1
+    var m = n
+    while (m > 0) {
+      res *= m
+      m -= 1
+    }
+    res
+  }
+
+  private def C(n: Int, m: Int): Double = factorial(n).toDouble / (factorial(m) * factorial(n - m))
+
+  private[this] val c30 = C(3, 0)
+  private[this] val c31 = C(3, 1)
+  private[this] val c32 = C(3, 2)
+  private[this] val c33 = C(3, 3)
+
+  final case class PathCube(x1: Double, y1: Double, x2: Double, y2: Double, x3: Double, y3: Double)
+    extends PathCanInterpolate {
 
     def addTo(p: Path2D): Unit = p.curveTo(x1, y1, x2, y2, x3, y3)
     def endX: Double = x3
@@ -67,9 +118,23 @@ object VertexImpl {
 
     def reverse(startX: Double, startY: Double): PathCube =
       PathCube(x2, y2, x1, y1, startX, startY)
+
+    def interpolate(startX: Double, startY: Double, t: Double): PathLine = {
+      require (t >= 0 && t <= 1)
+      // P(t) = B(3,0)*CP + B(3,1)*P1 + B(3,2)*P2 + B(3,3)*P3 ; 0 <=t<=1
+      val b30 = B(t, c30, 3, 0)
+      val b31 = B(t, c31, 3, 1)
+      val b32 = B(t, c32, 3, 2)
+      val b33 = B(t, c33, 3, 3)
+      val x   = b30 * startX + b31 * x1 + b32 * x2 + b33 * x3
+      val y   = b30 * startY + b31 * y1 + b32 * y2 + b33 * y3
+      PathLine(x, y)
+    }
   }
-  private[this] case object PathClose extends PathCmd {
+  case object PathClose extends PathCmd {
     def addTo(p: Path2D): Unit = p.closePath()
+
+    def toLines(startX: Double, startY: Double, n: Int): Vector[PathCmd] = Vector(this)
   }
 
   private lazy val morphPairs: Map[(Char, Char), (Int, Int)] = {
@@ -151,6 +216,45 @@ object VertexImpl {
     val v = mkCmd(shp)
     v.foreach(_.addTo(p))
     p
+  }
+
+  private def mkShape(cmd: Vector[PathCmd]): Shape = {
+    val p = new Path2D.Float()
+    cmd.foreach(_.addTo(p))
+    p
+  }
+
+  def difference(shp: Shape): Shape = {
+    val v = mkCmd(shp)
+    val itGroup0 = mkGroups(v)
+//    val groups = itGroup0.toVector
+//    println(s"difference size = ${groups.size}")
+//    val itGroup = groups.iterator
+    val itGroup = itGroup0
+    if (itGroup.hasNext) return shp
+    val a1 = new Area(mkShape(itGroup.next()))
+    itGroup.foreach { cmd =>
+      val a2 = mkShape(cmd)
+      a1.subtract(new Area(a2))
+    }
+    a1
+  }
+
+  def lines(shp: Shape, n: Int): Shape = {
+    val v   = mkCmd(shp)
+    var x   = 0.0
+    var y   = 0.0
+    val v1  = v.flatMap { in =>
+      val res = in.toLines(x, y, n)
+      in match {
+        case to: PathCmdTo =>
+          x = to.endX
+          y = to.endY
+        case _ =>
+      }
+      res
+    }
+    mkShape(v1)
   }
 
   def shiftShape(name: String, shp: Shape, shift: Int): Shape = {
