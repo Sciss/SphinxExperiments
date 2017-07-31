@@ -25,3 +25,5 @@ initialCommands in console :=
     |import de.sciss.kollflitz.Ops._
     |import de.sciss.numbers.Implicits._
     |import de.sciss.file._""".stripMargin
+
+resolvers += "Oracle Repository" at "http://download.oracle.com/maven"/  // required for sleepycat
