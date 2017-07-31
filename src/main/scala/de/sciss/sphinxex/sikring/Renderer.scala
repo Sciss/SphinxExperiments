@@ -2,7 +2,7 @@
  *  Renderer.scala
  *  (SphinxExperiments)
  *
- *  Copyright (c) 2016 Hanns Holger Rutz. All rights reserved.
+ *  Copyright (c) 2016-2017 Hanns Holger Rutz. All rights reserved.
  *
  *  This software is published under the GNU General Public License v3+
  *
@@ -146,7 +146,7 @@ object Renderer {
           val b = (0 until numRows).exists { rowIdx =>
             val sel = columns.slice(colIdx, colIdx + n)
             val sub = sel.map(_.apply(rowIdx)) // .mkString
-          val res = sub.head.isDefined && sub.last.isDefined && sub.init.tail.forall(_.isEmpty)
+            val res = sub.head.isDefined && sub.last.isDefined && sub.init.tail.forall(_.isEmpty)
             // if (res) println(sub.mkString)
             res
           }

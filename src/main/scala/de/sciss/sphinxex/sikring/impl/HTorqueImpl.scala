@@ -2,7 +2,7 @@
  *  HTorqueImpl.scala
  *  (SphinxExperiments)
  *
- *  Copyright (c) 2016 Hanns Holger Rutz. All rights reserved.
+ *  Copyright (c) 2016-2017 Hanns Holger Rutz. All rights reserved.
  *
  *  This software is published under the GNU General Public License v3+
  *
@@ -29,9 +29,9 @@ final class HTorqueImpl(startTime: Int, phasePeriod: Int, seq: Vec[Double])
 
   def eval(time: Int, edge: Edge)(implicit tx: InTxn): (DoublePoint2D, DoublePoint2D) = {
     import edge.{sink, source}
-    val rA      = source.bounds
+//    val rA      = source.bounds
     val pA      = source.position
-    val rB      = sink  .bounds
+//    val rB      = sink  .bounds
     val pB      = sink  .position
 
     val dt      = time - startTime
