@@ -29,7 +29,23 @@ import scala.swing.{BorderPanel, Button, CheckBox, Component, Dimension, FlowPan
 object SikringTest extends SimpleSwingApplication {
   lazy val top: Frame = {
     val phrases = Vec(
-      Vec("almat", "ALMAT")
+      // Vec("almat", "ALMAT")
+      Vec(
+        """es geht und geht das gehen geht und vergeht sich im schritt""",
+        """aus dem schritt der abdruck verschwimmt wird weich am ende"""
+      ),
+      Vec(
+        """schnurrt schon fast beim ergrauen stiften bleiminen über das weißblau""",
+        """singt das meer singt und singt wolkenmilch für den eintagsbrei wird mehr und mehr rostig"""
+      ),
+      Vec(
+        """biontenschnee legt sich auf fensterschaum härtet sich aus""",
+        """ sonnen sich sternleichen blicken sich nischen"""
+      ),
+      Vec(
+        """die einen  schleifen drahten parallel""",
+        """die anderen wachsen bakteriengespickt gemeinsam im kreis von sich weg"""
+      )
     )
     val phrasesOLD = Vec(
 //      Vec(
