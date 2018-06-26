@@ -55,7 +55,7 @@ object EditTranscript {
         "ice"       "ice"       "ice"    |    "ice"    |    "ice"        "ice"     |    "i**c**e" |    "i**c**e"     "i**c***e*"
         "inner"     "inner"     "inner"  |    "inner"  |    "inner"      "inner"   |    "inner"   |    "i**nner"     "i**nn**er"
 
-        And the last action can be improved: an 'I' where a place holder '*' is found is "swalled". Thus:
+        And the last action can be improved: an 'I' where a place holder '*' is found is "swallowed". Thus:
 
         "f**rom**"
         "c*hrome*"
