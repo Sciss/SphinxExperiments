@@ -32,8 +32,10 @@ object Test1 extends App {
   cfg.setLanguageModelPath("resource:/edu/cmu/sphinx/models/en-us/en-us.lm.bin")
 
   val rec   = new StreamSpeechRecognizer(cfg)
+  val base0 = userHome / "Documents" / "projects" / "Transpositions"
+  val base  = if (base0.isDirectory) base0 else file("/data/projects/Transpositions")
   // val fIn   = userHome / "Downloads" / "Big_Ego_12-burroughsRsmp.wav"
-  val fIn   = userHome / "Documents" / "projects" / "Transpositions"/ "audio_work" / "B18h00m41s08mar2016-MonoRsmp.wav"
+  val fIn   = base / "audio_work" / "B18h00m41s08mar2016-MonoRsmp.wav"
   val is    = new FileInputStream(fIn)
 
   rec.startRecognition(is)
