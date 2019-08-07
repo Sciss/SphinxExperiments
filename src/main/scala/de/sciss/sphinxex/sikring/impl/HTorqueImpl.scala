@@ -39,7 +39,7 @@ final class HTorqueImpl(startTime: Int, phasePeriod: Int, seq: Vec[Double])
     val phase0  = (dt % phasePeriod).toDouble / phasePeriod
     import numbers.Implicits._
     val PiH     = math.Pi/2
-    val phase   = phase0.linlin(0, 1, -PiH, PiH).sin.linlin(-1, 1, 0, 1)
+    val phase   = phase0.linLin(0, 1, -PiH, PiH).sin.linLin(-1, 1, 0, 1)
     val w0      = seq (step)
     val w1      = seq((step + 1) % seq.size)
     val targetH0 = if (w0 == 0) w1 else if (w1 == 0) w0 else w0 * (1 - phase) + w1 * phase

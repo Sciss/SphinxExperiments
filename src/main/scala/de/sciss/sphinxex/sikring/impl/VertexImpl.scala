@@ -47,7 +47,7 @@ object VertexImpl {
         Vector.tabulate(n) { i =>
           if (i == n - 1) fin else {
             import numbers.Implicits._
-            val t = (i + 1).linlin(0, n, 0.0, 1.0)
+            val t = (i + 1).linLin(0, n, 0.0, 1.0)
             interpolate(startX, startY, t)
           }
         }
@@ -73,8 +73,8 @@ object VertexImpl {
     def interpolate(startX: Double, startY: Double, t: Double): PathLine = {
       require(t >= 0 && t <= 1)
       import numbers.Implicits._
-      val xi = t.linlin(0, 1, startX, x)
-      val yi = t.linlin(0, 1, startY, y)
+      val xi = t.linLin(0, 1, startX, x)
+      val yi = t.linLin(0, 1, startY, y)
       PathLine(xi, yi)
     }
   }
@@ -86,7 +86,16 @@ object VertexImpl {
     def reverse(startX: Double, startY: Double): PathQuad =
       PathQuad(x1, y1, startX, startY)
 
-    def interpolate(startX: Double, startY: Double, t: Double): PathLine = ???
+    def interpolate(startX: Double, startY: Double, t: Double): PathLine = {
+      require(t >= 0 && t <= 1)
+      // P(t) = B(2,0)*CP + B(2,1)*P1 + B(2,2)*P2
+      val b20 = B(t, c20, 2, 0)
+      val b21 = B(t, c21, 2, 1)
+      val b22 = B(t, c22, 2, 2)
+      val x   = b20 * startX + b21 * x1 + b22 * x2
+      val y   = b20 * startY + b21 * y1 + b22 * y2
+      PathLine(x, y)
+    }
   }
 
   private def B(t: Double, c: Double, n: Int, m: Int): Double = c * math.pow(t, m) * math.pow(1 - t, n - m)
@@ -104,6 +113,9 @@ object VertexImpl {
 
   private def C(n: Int, m: Int): Double = factorial(n).toDouble / (factorial(m) * factorial(n - m))
 
+  private[this] val c20 = C(2, 0)
+  private[this] val c21 = C(2, 1)
+  private[this] val c22 = C(2, 2)
   private[this] val c30 = C(3, 0)
   private[this] val c31 = C(3, 1)
   private[this] val c32 = C(3, 2)
@@ -317,7 +329,7 @@ final class VertexImpl(val label: String, startTime: Int, phasePeriod: Int, seq:
     val phase0  = (dt % phasePeriod).toDouble / phasePeriod
     val PiH     = math.Pi/2
     import numbers.Implicits._
-    val phase   = phase0.linlin(0, 1, -PiH, PiH).sin.linlin(-1, 1, 0, 1)
+    val phase   = phase0.linLin(0, 1, -PiH, PiH).sin.linLin(-1, 1, 0, 1)
     val w0      = if (seq (step)._2                 .isEmpty) 0.0 else 1.0
     val w1      = if (seq((step + 1) % seq.size)._2 .isEmpty) 0.0 else 1.0
     val weight  = w0 * (1 - phase) + w1 * phase

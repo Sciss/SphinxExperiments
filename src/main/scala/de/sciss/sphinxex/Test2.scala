@@ -13,7 +13,7 @@
 
 package de.sciss.sphinxex
 
-import java.awt.{Font, Color}
+import java.awt.Color
 import java.io.FileInputStream
 
 import de.sciss.audiowidgets.AxisFormat
@@ -106,7 +106,7 @@ object Test2 extends App {
 
   def process(self: Processor.Body, g: Graphics2D): Unit = {
     g.setColor(Color.black)
-    val font = MyFont(16f)
+    val font = OpenSansFont(16f)
     g.setFont(font)
     val fm   = g.getFontMetrics
 
@@ -128,7 +128,7 @@ object Test2 extends App {
         // res.getStartFrame
 
         val tokens  = (res.getActiveTokens.asScala.toList ++ res.getResultTokens.asScala.toList).toSet
-        val states  = tokens.map(_.getSearchState)
+//        val states  = tokens.map(_.getSearchState)
         // val nullSet = tokens.map(_.getPredecessor != null)
         // println(nullSet.mkString("Null set: ", ", ", ""))
         // val hasOutside = tokens.exists(t => !tokens.contains(t.getPredecessor))

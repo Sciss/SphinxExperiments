@@ -66,7 +66,7 @@ object Renderer {
      */
 
     val graph   = Graph()
-    val font    = MyFont(64)
+    val font    = OpenSansFont(64)
 
     val tmpImg  = new BufferedImage(16, 16, BufferedImage.TYPE_INT_ARGB)
     val tmpG    = tmpImg.createGraphics()

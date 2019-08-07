@@ -110,7 +110,7 @@ object ParseToLucre {
             val l = speechRes.getLattice
             cursor.step { implicit tx =>
               val list = listH()
-              list.add(idx -> l)
+              list.put(idx, l)
             }
             val words       = speechRes.getWords.asScala
             val endFrame    = words.lastOption.map(_.getTimeFrame.getEnd).getOrElse(0L)
